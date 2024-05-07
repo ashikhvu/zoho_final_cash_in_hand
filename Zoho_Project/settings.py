@@ -84,10 +84,10 @@ WSGI_APPLICATION = 'Zoho_Project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'infoxtec_ZohoFinalDatabase',
-        'USER': 'infoxtec_ZohoFinalDatabase',
-        'PASSWORD': 'infoxtec_ZohoFinalDatabase',
-        'HOST': 'localhost',
+        'NAME': 'infoxtec_finsysnewfile2',
+        'USER': 'root',
+        'PASSWORD': 'password',
+        'HOST': '127.0.0.1',
         'PORT': '3306',
     }
 }
@@ -131,7 +131,10 @@ USE_TZ = True
 
 MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 MEDIA_URL = '/media/'
-STATIC_ROOT = os.path.join(BASE_DIR,'static')
+if DEBUG:
+    STATICFILES_DIRS = [os.path.join(BASE_DIR,"static")]
+else:
+    STATIC_ROOT = [os.path.join(BASE_DIR,"static")]
 STATIC_URL = '/static/'
 
 

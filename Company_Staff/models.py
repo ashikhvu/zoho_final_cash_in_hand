@@ -1784,3 +1784,17 @@ class RetainerInvoiceHistory(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     action = models.CharField(max_length=100, default='')  # Provide a default value here
     # Add any other fields as needed
+
+class CashInHand(models.Model):
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
+    adjustment_coices = (
+        ('Reduce Cash','Reduce Cash'),
+        ('Add Cash','Add Cash')
+    )
+    adjustment = models.CharField(max_length=50,choices=adjustment_coices)
+    amount = models.BigIntegerField(default=0)
+    date = models.DateTimeField()
+    description = models.TextField(null=True,blank=True)
+
+    def __str__(self):
+        return self.adjustment

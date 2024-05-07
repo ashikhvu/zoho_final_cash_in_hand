@@ -32358,5 +32358,132 @@ def bill_overview(request,pk):
             'company':company,
         }
         return render(request, 'zohomodules/bill/bill_overview.html',context)
+
+
+# ---------------------------------ashikh vu------( start )------------------------------
+
+from django.db.models import F,Value,CharField,BooleanField
+
+def cash_in_hand_listout(request):
+    if 'login_id' in request.session:
+        log_id = request.session['login_id']
+        if 'login_id' not in request.session:
+            return redirect('/')
+        log_details= LoginDetails.objects.get(id=log_id)
+        if log_details.user_type == 'Staff':
+            dash_details = StaffDetails.objects.get(login_details=log_details).company
+            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+        if log_details.user_type == 'Company':
+            dash_details = CompanyDetails.objects.get(login_details=log_details)
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
+            
+        item=Items.objects.filter(company=dash_details)
+
+        cash_in_hand = list(CashInHand.objects.filter(company=dash_details).annotate(
+            object_id=F('id'),object_date=F('date'),object_type=F('adjustment'),object_name=Value("",output_field=CharField()),object_amount=F('amount'),object_action=Value(True,output_field=BooleanField()))
+        )
+        inv = list(invoice.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advanced_paid=0).annotate(
+            object_id=F('id'),object_date=F('date'),object_type=Value('Invoice',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advanced_paid'))
+        )
+        so = list(SaleOrder.objects.filter(company=dash_details,status__iexact='Save',payment_method__iexact='Cash').exclude(advanced_paid=0).annotate(
+            object_id=F('id'),object_date=F('sales_order_date'),object_type=Value('Sales Order',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advanced_paid'))
+        )
+        co = list(Credit_Note.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
+            object_id=F('id'),object_date=F('credit_note_date'),object_type=Value('Credit Note',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance_paid'))
+        )
+        recinv = list(RecurringInvoice.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
+            object_id=F('id'),object_date=F('start_date'),object_type=Value('Recurring Invoice',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance_paid'))
+        )
+        recbill = list(Recurring_bills.objects.filter(company=dash_details,status__iexact='save',payment_type__iexact='Cash').exclude(paid=0).annotate(
+            object_id=F('id'),object_date=F('rec_bill_date'),object_type=Value('Recurring Bill',output_field=CharField()),object_name=F('vendor_details__first_name'),object_amount=F('paid'))
+        )
+        vend_credit = list(debitnote.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
+            object_id=F('id'),object_date=F('debitnote_date'),object_type=Value('Vendor Credit / Debit Note',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advance_paid'))
+        )
+        emp_loan = list(EmployeeLoan.objects.filter(company=dash_details,active=1,payment_method__iexact='Cash').annotate(
+            object_id=F('id'),object_date=F('Loandate'),object_type=Value('Employee Loan',output_field=CharField()),object_name=F('Employee__first_name'),object_amount=F('balance'))
+        )
         
+        1# company id issue in retainer invoice model
+        # rinv = list(RetainerInvoice.objects.filter(company=dash_details,is_sent=True,payment_method__iexact='Cash').exclude(advance=0).annotate(
+        #     object_id=F('id'),object_date=F('retainer_invoice_date'),object_type=Value('Retainer Invoice',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance'))
+        # )
+
+        2# purachase order model not created
+
+        3# bill create page error
+        
+        # bill = list(Bill.objects.filter(Company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(Advance_amount_Paid=0).annotate(
+        #     object_id=F('id'),object_date=F('start_date'),object_type=Value('Recurring Invoice',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('Advance_amount_Paid'))
+        # )
+
+        all_query_set = cash_in_hand+inv+so+co+recinv+recbill+vend_credit+emp_loan
+
+        for i in all_query_set:
+            if i.object_type.upper() == "REDUCE CASH":
+                pass
+            elif i.object_type.upper() == "ADD CASH":
+                pass
+        
+        context = {
+                'details': dash_details,
+                'allmodules': allmodules,
+                'item':item,
+                'all_query_set': all_query_set
+        }
+        return render(request,'zohomodules/cash_in_hand/cash_in_hand_listout.html',context)
+
+
+def cash_in_hand_add(request):
+    if 'login_id' in request.session:
+        log_id = request.session['login_id']
+        if 'login_id' not in request.session:
+            return redirect('/')
+        log_details= LoginDetails.objects.get(id=log_id)
+        if log_details.user_type == 'Staff':
+            dash_details = StaffDetails.objects.get(login_details=log_details).company
+            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+        if log_details.user_type == 'Company':
+            dash_details = CompanyDetails.objects.get(login_details=log_details)
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
+
+        context = {'allmodules':allmodules}
+        return render(request,"zohomodules/cash_in_hand/cash_in_hand_add.html",context)
+    else:
+        return redirect('/')
+
+
+def cash_in_hand_adjust_cash(request):
+    if 'login_id' in request.session:
+        log_id = request.session['login_id']
+        if 'login_id' not in request.session:
+            return redirect('/')
+        log_details= LoginDetails.objects.get(id=log_id)
+        if log_details.user_type == 'Staff':
+            dash_details = StaffDetails.objects.get(login_details=log_details).company
+            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+        if log_details.user_type == 'Company':
+            dash_details = CompanyDetails.objects.get(login_details=log_details)
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
+
+        if request.method == "POST":
+            if request.POST.get('adjust') == 'reduce':
+                adj = "Reduce Cash"
+            else:
+                adj = "Add Cash"
+            amt = request.POST.get('amount')
+            date = request.POST.get('date')
+            desc = request.POST.get('desc')
+
+            CashInHand.objects.get_or_create(company=dash_details,adjustment =adj,amount =amt,date =date,description =desc)
+
+            context = {'allmodules':allmodules}
+            return redirect('cash_in_hand_listout')
+        return render(request,"zohomodules/cash_in_hand/cash_in_hand_add.html",context)
+    else:
+        return redirect('/')
+
+# ---------------------------------ashikh vu------( end )------------------------------
+
+
 #End

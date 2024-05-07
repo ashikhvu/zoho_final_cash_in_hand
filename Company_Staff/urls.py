@@ -753,8 +753,20 @@ urlpatterns = [
     path('bill_add_item_account', views.bill_add_item_account, name='bill_add_item_account'),
     path('bill_listout', views.bill_listout, name='bill_listout'),
     path('bill_overview/<int:pk>',views.bill_overview,name='bill_overview'),
+
+
+    path('add_new_bill', views.add_new_bill, name='add_new_bill'),
+    path('bill_customer_create', views.bill_customer_create, name='bill_customer_create'),
+
+    # ashikh
+    path('cash_in_hand_listout', views.cash_in_hand_listout, name='cash_in_hand_listout'),
+    path('cash_in_hand_add', views.cash_in_hand_add, name='cash_in_hand_add'),
+    path('cash_in_hand_adjust_cash', views.cash_in_hand_adjust_cash, name='cash_in_hand_adjust_cash'),
     #End
-    
+
+
+
+
     re_path(r'^static/(?P<path>.*)$', serve,{'document_root': settings.STATIC_ROOT}),
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS)
