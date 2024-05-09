@@ -84,7 +84,7 @@ WSGI_APPLICATION = 'Zoho_Project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'infoxtec_finsysnewfile2',
+        'NAME': 'infoxtec_ZohoFinalDatabase',
         'USER': 'root',
         'PASSWORD': 'password',
         'HOST': '127.0.0.1',

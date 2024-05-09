@@ -149,7 +149,7 @@
                                 <i class="fa fa-bar-chart p-1" style="font-size: large;"></i>
                                 <span style="font-size: 2vh; margin-left: 0.5rem;" class="text-center">Graph</span>
                             </a>
-                            <a style=" border-radius: 5px; height: 2.4rem; display: flex; align-items: center;" onclick="exportToExcel()" class="btn btn-outline-warning" >
+                            <a style=" border-radius: 5px; height: 2.4rem; display: flex; align-items: center;" href="{% url 'cash_in_hand_statement' %}" class="btn btn-outline-warning" >
                               <i class="fa fa-file p-1" style="font-size: large;"></i>
                               <span style="font-size: 2vh; margin-left: 0.5rem;" class="text-center">Statement</span>
                             </a>
@@ -159,10 +159,10 @@
                         </div>
     
                     </div>
-
-                    <div class="row mt-4">
-                        <form action="" id="date_filter_form">
-                            <div class="col-md-6">
+                    <form action="" id="date_filter_form">
+                        <div class="row mt-4">
+                        
+                            <div class="col-md-6" >
                                 <div class="row">
                                     <div class="col-md-5">
                                         <div class="d-flex">
@@ -178,20 +178,25 @@
                                     </div>
                                     <div class="col-md-5">
                                         <div class="d-flex">
-                                            <!-- <label class="fs-5 p-2 text-warning" for="">To</label> -->
                                             <input class="form-control border-warning" style="background-color: rgb(24, 24, 24);" type="date" name="" id="end_date" required>
                                         </div>
                                     </div>
                                     <div class="col-md-1">
                                         <div class="d-flex">
-                                            <!-- <label class="fs-5 p-2 text-warning" for="">To</label> -->
                                             <button class="btn btn-outline-warning" type="submit">Filter</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </form>
-                    </div>
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-end">
+                                    <h1 class="text-warning"><strong>BALANCE: <span class="ps-3">{{ total_balance|floatformat:2 }}</span></strong></h1>
+                                </div>
+                            </div>
+                            
+                        
+                        </div>
+                    </form>
 
                     <div class="container-fluid table-responsive-md ">
                         <br>
@@ -216,11 +221,11 @@
                                     <td class="cash_date">{{ i.object_date|date:'Y-m-d' }}</td>
                                     <td>{{ i.object_type }}</td>
                                     <td>{{ i.object_name }}</td>
-                                    <td class="amnt">{{ i.object_amount }}</td>
+                                    <td class="amnt">{{ i.object_amount|floatformat:2 }}</td>
                                     <td>
                                         {% if i.object_action %}
                                         <a onclick="$(`#{{ forloop.counter }}action_bord`).toggle()"><i class="fa fa-ellipsis-v text-light"></i></a>
-                                        <div class="position-relative" id="{{ forloop.counter }}action_bord" style="display: none;">
+                                        <div class="position-relative check_visible" id="{{ forloop.counter }}action_bord" style="display: none;user-select: none;">
                                             <div class="position-absolute start-50 translate-middle-x">
                                                 <div class="card bg-dark text-start border-light">
                                                     <ul class="py-2 pb-1 m-0">
@@ -463,6 +468,18 @@
 
         });
     })
+    // $(document).ready(function(){
+    //     $(document).on('click',function(){
+    //         if($('.check_visible').css('display')==="none")
+    //         {
+    //             alert('hide')
+    //         }
+    //         else{
+    //             alert('show')
+    //             $('.check_visible').show()
+    //         }
+    //     })
+    // })
 </script>
 
 

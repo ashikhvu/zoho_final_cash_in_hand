@@ -762,6 +762,8 @@ urlpatterns = [
     path('cash_in_hand_listout', views.cash_in_hand_listout, name='cash_in_hand_listout'),
     path('cash_in_hand_add', views.cash_in_hand_add, name='cash_in_hand_add'),
     path('cash_in_hand_adjust_cash', views.cash_in_hand_adjust_cash, name='cash_in_hand_adjust_cash'),
+    path('cash_in_hand_statement', views.cash_in_hand_statement, name='cash_in_hand_statement'),
+    path('share_cash_in_hand_statement_via_mail', views.share_cash_in_hand_statement_via_mail, name='share_cash_in_hand_statement_via_mail'),
     #End
 
 

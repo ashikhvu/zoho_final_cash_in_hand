@@ -1097,7 +1097,49 @@ class RetainerInvoice(models.Model):
     def getNumFieldName(self):
         return 'retainer_invoice_number'
         
-        
+class Retaineritems(models.Model):
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE,null=True,blank=True)
+    logindetails = models.ForeignKey(LoginDetails, on_delete=models.CASCADE,null=True,blank=True)
+    retainer=models.ForeignKey(RetainerInvoice, on_delete=models.CASCADE)
+    description=models.TextField()
+    amount=models.CharField(max_length=100)
+    itemname=models.CharField(max_length=100,null=True)
+    hsn=models.IntegerField(null=True)
+    quantity=models.IntegerField(null=True)
+    rate=models.IntegerField(null=True)
+    item=models.ForeignKey(Items,on_delete=models.CASCADE,null=True)
+    def getNumFieldName(self):
+        return 'retainer_invoice_number'
+
+class retInvoiceReference(models.Model):
+    reference = models.BigIntegerField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE, null=True, blank=True)
+    logindetails = models.ForeignKey(LoginDetails, on_delete=models.CASCADE, null=True, blank=True)
+    
+class retainer_payment_details(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True)
+    retainer=models.ForeignKey(RetainerInvoice,on_delete=models.CASCADE,null=True,blank=True)
+    payment_opt=models.CharField(max_length=100,null=True,blank=True)
+    acc_no=models.CharField(max_length=100,null=True,blank=True)
+    upi_id=models.CharField(max_length=100,null=True,blank=True)
+    cheque_no=models.CharField(max_length=100,null=True,blank=True)
+    bank = models.ForeignKey(Banking,on_delete=models.SET_NULL,null=True,blank=True)
+
+class RetainerInvoiceComment(models.Model):
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
+    retainer_invoice = models.ForeignKey(RetainerInvoice, on_delete=models.CASCADE)
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Comment by {self.company} on Retainer Invoice #{self.retainer_invoice.id}"
+
+class RetainerInvoiceHistory(models.Model):
+    retainer_invoice = models.ForeignKey('RetainerInvoice', on_delete=models.CASCADE)
+    date = models.DateTimeField(auto_now_add=True)
+    action = models.CharField(max_length=100, default='')  # Provide a default value here
+    # Add any other fields as needed
 #-------Delivery Challan ------------------------------------
 
 class Delivery_challan(models.Model):
@@ -1741,49 +1783,6 @@ class debitnote_Comments(models.Model):
     
 #End
 
-class Retaineritems(models.Model):
-    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE,null=True,blank=True)
-    logindetails = models.ForeignKey(LoginDetails, on_delete=models.CASCADE,null=True,blank=True)
-    retainer=models.ForeignKey(RetainerInvoice, on_delete=models.CASCADE)
-    description=models.TextField()
-    amount=models.CharField(max_length=100)
-    itemname=models.CharField(max_length=100,null=True)
-    hsn=models.IntegerField(null=True)
-    quantity=models.IntegerField(null=True)
-    rate=models.IntegerField(null=True)
-    item=models.ForeignKey(Items,on_delete=models.CASCADE,null=True)
-    def getNumFieldName(self):
-        return 'retainer_invoice_number'
-
-class retInvoiceReference(models.Model):
-    reference = models.BigIntegerField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE, null=True, blank=True)
-    logindetails = models.ForeignKey(LoginDetails, on_delete=models.CASCADE, null=True, blank=True)
-    
-class retainer_payment_details(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE,null=True,blank=True)
-    retainer=models.ForeignKey(RetainerInvoice,on_delete=models.CASCADE,null=True,blank=True)
-    payment_opt=models.CharField(max_length=100,null=True,blank=True)
-    acc_no=models.CharField(max_length=100,null=True,blank=True)
-    upi_id=models.CharField(max_length=100,null=True,blank=True)
-    cheque_no=models.CharField(max_length=100,null=True,blank=True)
-    bank = models.ForeignKey(Banking,on_delete=models.SET_NULL,null=True,blank=True)
-
-class RetainerInvoiceComment(models.Model):
-    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
-    retainer_invoice = models.ForeignKey(RetainerInvoice, on_delete=models.CASCADE)
-    comment = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Comment by {self.company} on Retainer Invoice #{self.retainer_invoice.id}"
-
-class RetainerInvoiceHistory(models.Model):
-    retainer_invoice = models.ForeignKey('RetainerInvoice', on_delete=models.CASCADE)
-    date = models.DateTimeField(auto_now_add=True)
-    action = models.CharField(max_length=100, default='')  # Provide a default value here
-    # Add any other fields as needed
 
 class CashInHand(models.Model):
     company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
@@ -1798,3 +1797,317 @@ class CashInHand(models.Model):
 
     def __str__(self):
         return self.adjustment
+
+class Payment_recieved(models.Model):
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
+    login_details=models.ForeignKey(LoginDetails,on_delete=models.CASCADE)
+    customer=models.ForeignKey(Customer,on_delete=models.CASCADE,null=True)
+    customer_email=models.EmailField(max_length=220,null=True,blank=True)
+    customer_billingaddress=models.CharField(max_length=220,null=True,blank=True)
+    customer_GSTtype=models.CharField(max_length=220,null=True,blank=True)
+    customer_GSTnumber=models.CharField(max_length=220,null=True,blank=True)
+    customer_place_of_supply=models.CharField(max_length=220,null=True,blank=True)
+    payment_date = models.DateField(null=True)
+    reference_number=models.IntegerField(blank=True,null=True,)
+    payment_number=models.CharField(max_length=220,null=True,blank=True)
+    payment_method = models.CharField(max_length=220,null=True,blank=True)
+    cheque_number = models.CharField(max_length=220,null=True,blank=True)
+    upi_id =models.CharField(max_length=220,null=True,blank=True)
+    bank_account_number = models.CharField(max_length=255, blank=True, null=True)
+    amount_to_apply = models.FloatField(default=0.0, null=True, blank=True)
+    amount_to_credit = models.FloatField(default=0.0, null=True, blank=True)
+    status = models.CharField(max_length=255,null=True,blank=True)  
+
+
+class Payment_details(models.Model): 
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
+    login_details=models.ForeignKey(LoginDetails,on_delete=models.CASCADE)
+    payment_recieved=models.ForeignKey(Payment_recieved,on_delete=models.CASCADE)
+    balance = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
+    payment=models.IntegerField(blank=True,null=True,)
+    invoice_amount =models.IntegerField(blank=True,null=True,)
+    invoice_number=models.CharField(max_length=220,null=True,blank=True)
+    invoice_type=models.CharField(max_length=220,null=True,blank=True)
+    Due_Date = models.DateField(null=True)
+    Date=models.DateField(null=True)  
+
+class Payment_reference(models.Model):
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
+    login_details=models.ForeignKey(LoginDetails,on_delete=models.CASCADE)
+    reference_number = models.CharField(max_length=220,null=True,blank=True)
+
+class payment_history(models.Model):
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
+    login_details=models.ForeignKey(LoginDetails,on_delete=models.CASCADE)
+    payment_recieved=models.ForeignKey(Payment_recieved,on_delete=models.CASCADE)
+    Date=models.DateField(null=True)
+    action_choices = [
+        ('Created', 'Created'), 
+        ('Edited', 'Edited')
+        ]
+    action = models.CharField(max_length=10, choices=action_choices,null=True)
+
+class Expense(models.Model):
+    #company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
+    login_details = models.ForeignKey(LoginDetails, on_delete=models.CASCADE,null=True,blank=True)
+    company=models.ForeignKey(CompanyDetails,on_delete=models.CASCADE,null=True,blank=True)
+    date = models.DateField()
+    account = models.CharField(max_length=100)
+    expense_type = models.CharField(max_length=100, null=True)
+    hsn_code = models.CharField(max_length=100, blank=True, null=True)
+    sac_code = models.CharField(max_length=100, blank=True, null=True)
+    expense_number = models.CharField(max_length=100)
+    reference_number = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    tax_rate = models.CharField(max_length=100)
+    payment_type = models.CharField(max_length=100)
+    vendor_name = models.CharField(max_length=100,null=True)
+    vendor_email = models.EmailField()
+    vendor_gstin = models.CharField(max_length=100)
+    vendor_gst_type = models.CharField(max_length=100)
+    vendor_source_of_supply = models.CharField(max_length=100,null=True)
+    vendor_billing_address = models.TextField(null=True)
+    customer_name = models.CharField(max_length=100, null=True)
+    customer_email = models.EmailField(null=True)
+    customer_gstin = models.CharField(max_length=100, null=True)
+    customer_gst_type = models.CharField(max_length=100, null=True)
+    customer_price_of_supply = models.CharField(max_length=100, null=True)
+    customer_billing_address = models.TextField(null=True)
+    note = models.TextField(null=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    status = models.CharField(max_length=20, null=True)
+
+
+##########Payment made############
+class payment_made(models.Model):
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE,null=True)
+    login_details = models.ForeignKey(LoginDetails, on_delete=models.CASCADE,null=True)
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE,null=True)
+    vendor_email = models.EmailField(max_length=100, null=True, blank=True)
+    billing_address = models.TextField(null=True, blank=True)
+    gst_type = models.CharField(max_length=100, null=True, blank=True)
+    gstin = models.CharField(max_length=100, null=True, blank=True)
+    source_of_supply = models.CharField(max_length=100, null=True, blank=True)
+    reference_no = models.BigIntegerField(null=True, blank=True)
+    payment_date = models.DateField(null=True, blank=True)
+    payment_no = models.CharField(max_length=100, null=True, blank=True)
+    cheque_number = models.CharField(max_length=100, null=True, blank=True)
+    upi_number = models.CharField(max_length=100, null=True, blank=True)
+    account_number = models.CharField(max_length=100, null=True, blank=True)
+    description = models.CharField(max_length=200, null=True, blank=True)
+    terms_and_conditions = models.TextField(null=True, blank=True)
+    payment_method = models.CharField(max_length=100, null=True, blank=True)
+    document=models.FileField(upload_to="images/",null=True)
+    total = models.FloatField(default=0.0, null=True, blank=True)
+    balance = models.FloatField(default=0.0, null=True, blank=True)
+    STATUS_CHOICES = [
+        ('Draft', 'Draft'),
+        ('Saved', 'Saved'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+
+class payment_made_bills(models.Model):
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE,null=True)
+    login_details = models.ForeignKey(LoginDetails, on_delete=models.CASCADE,null=True)
+    vendor=models.ForeignKey(Vendor,on_delete=models.CASCADE,null=True)
+    payment_made = models.ForeignKey(payment_made, on_delete=models.CASCADE,null=True)
+    bill_type = models.CharField(max_length=100, null=True, blank=True)
+    bill_number=models.CharField(max_length=100,null=True)
+    date = models.DateField(auto_now_add=True)
+    amount_due= models.FloatField(default=0.0, null=True, blank=True)
+    payment= models.FloatField(default=0.0, null=True, blank=True)
+
+
+class payment_made_Reference(models.Model):
+    login_details = models.ForeignKey(LoginDetails, on_delete=models.CASCADE,null=True,blank=True)
+    company=models.ForeignKey(CompanyDetails,on_delete=models.CASCADE,null=True,blank=True)
+    reference_number = models.BigIntegerField(null=True, blank=True)
+
+class payment_made_Comments(models.Model):
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE, null=True)
+    payment_made=models.ForeignKey(payment_made,on_delete=models.CASCADE,null=True,blank=True)
+    comments = models.CharField(max_length=500,null=True,blank=True)
+
+class payment_made_History(models.Model):
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE,null=True,blank=True)
+    login_details = models.ForeignKey(LoginDetails, on_delete=models.CASCADE,null=True,blank=True)
+    payment_made=models.ForeignKey(payment_made,on_delete=models.CASCADE,null=True,blank=True)
+    date = models.DateField(auto_now_add=True)
+    action = models.CharField(max_length=20, null=True)
+
+class Estimate(models.Model):
+    company = models.ForeignKey(CompanyDetails,on_delete=models.CASCADE)
+    login_details = models.ForeignKey(LoginDetails, on_delete=models.CASCADE,null=True,blank=True) 
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE,null=True,blank=True)
+    customer_email = models.EmailField(max_length=220,null=True,blank=True)
+    customer_bill_address = models.CharField(max_length=255)
+    customer_gst_treatment = models.CharField(max_length=255)
+    customer_gst_number = models.CharField(max_length=255)
+    customer_place_of_supply = models.CharField(max_length=255)
+    estimate_date = models.DateField()
+    payment_term = models.ForeignKey(Company_Payment_Term,on_delete=models.CASCADE)
+    expiration_date = models.DateField()
+    reference_number = models.IntegerField()
+    estimate_number = models.CharField(max_length=255)
+    description = models.CharField(max_length=255)
+    terms_and_condition = models.CharField(max_length=255)
+    document = models.FileField()
+    sub_total = models.FloatField()
+    cgst = models.FloatField()
+    sgst = models.FloatField()
+    tax_amount_igst = models.FloatField()
+    shipping_charge = models.FloatField()
+    adjustment = models.FloatField()
+    grand_total = models.FloatField()
+
+    STATUS_CHOICES = [
+        ('Draft', 'Draft'),
+        ('Saved', 'Saved'),
+    ]
+    status = models.CharField(max_length=255,  choices=STATUS_CHOICES)
+    converted_to_invoice = models.ForeignKey(invoice,on_delete=models.CASCADE,null=True)
+    converted_to_recurring_invoice = models.ForeignKey(RecurringInvoice,on_delete=models.CASCADE,null=True)
+    converted_to_sales_order = models.ForeignKey(SaleOrder,on_delete=models.CASCADE,null=True)
+
+    def getNumFieldName(self):
+        return 'estimate_number'
+
+
+class EstimateItems(models.Model):
+    item = models.ForeignKey(Items,on_delete=models.CASCADE)
+    hsn = models.CharField(max_length=255)
+    quantity = models.IntegerField()
+    price = models.FloatField()
+    tax_rate = models.FloatField()
+    discount = models.FloatField()
+    total = models.FloatField()
+    estimate = models.ForeignKey(Estimate,on_delete=models.CASCADE)
+    login_details = models.ForeignKey(LoginDetails,on_delete=models.CASCADE)
+    company = models.ForeignKey(CompanyDetails,on_delete=models.CASCADE)
+
+class EstimateReference(models.Model):
+    reference_number = models.CharField(max_length=255)
+    company = models.ForeignKey(CompanyDetails,on_delete=models.CASCADE)
+    login_details = models.ForeignKey(LoginDetails,on_delete=models.CASCADE)
+
+class EstimateHistory(models.Model):
+    company = models.ForeignKey(CompanyDetails,on_delete=models.CASCADE)
+    login_details = models.ForeignKey(LoginDetails,on_delete=models.CASCADE)
+    estimate = models.ForeignKey(Estimate,on_delete=models.CASCADE)
+    date = models.DateField()
+    action = models.CharField(max_length=255)
+
+class EstimateComment(models.Model):
+    estimate = models.ForeignKey(Estimate,on_delete=models.CASCADE)
+    comment = models.CharField(max_length=255, null=True, blank=True)
+    company = models.ForeignKey(CompanyDetails,on_delete=models.CASCADE)
+    login_details = models.ForeignKey(LoginDetails,on_delete=models.CASCADE)
+
+class PurchaseOrder(models.Model):
+    login_details = models.ForeignKey(LoginDetails, on_delete=models.CASCADE, blank=True, null=True)
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE, blank=True, null=True)
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE,blank=True, null=True) 
+    vendor_email = models.EmailField()
+    vendor_billing_address = models.CharField(max_length=255)
+    vendor_gst_type = models.CharField(max_length=255)
+    vendor_gst_number = models.CharField(max_length=255)
+    vendor_place_of_supply = models.CharField(max_length=255)
+    #CUSTOMER
+    customer_name = models.ForeignKey(Customer, on_delete=models.CASCADE,null=True)
+    customer_email = models.EmailField(null=True)
+    customer_billing_address = models.CharField(max_length=255,null=True)
+    customer_gst_type = models.CharField(max_length=50,null=True)
+    customer_gst_number = models.CharField(max_length=20,null=True)
+    customer_place_of_supply = models.CharField(max_length=100,null=True)
+
+    org_name = models.CharField(max_length=255,null=True)
+    org_gst_number = models.CharField(max_length=20,null=True)
+    org_email = models.EmailField(null=True)
+    org_address = models.CharField(max_length=255,null=True)
+    org_street = models.CharField(max_length=255,null=True)
+    org_city = models.CharField(max_length=100,null=True)
+    org_state = models.CharField(max_length=100,null=True)
+
+    
+    purchase_order_date = models.DateField()
+    payment_terms = models.ForeignKey(Company_Payment_Term, on_delete=models.CASCADE,blank=True, null=True)
+    expiration_date = models.DateField()
+    reference_number = models.CharField(max_length=255)
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('Cash', 'Cash'),
+        ('Cheque', 'Cheque'),
+        ('UPI', 'UPI'),
+        ('Bank', 'Bank'),
+    ]
+    payment_method = models.CharField(max_length=255, choices=PAYMENT_METHOD_CHOICES)
+    
+    cheque_number = models.CharField(max_length=255, blank=True, null=True)
+    upi_number = models.CharField(max_length=255, blank=True, null=True)
+    bank_account_number = models.CharField(max_length=255, blank=True, null=True)
+    sales_order_number = models.CharField(max_length=100,null=True)
+    
+    
+    description = models.CharField(max_length=255)
+    terms_and_condition = models.TextField()
+    document = models.FileField(upload_to='documents/',blank=True, null=True)
+    sub_total = models.DecimalField(max_digits=10,decimal_places=2,blank=True, null=True)
+    igst = models.FloatField(default=0.0, null=True, blank=True)
+    cgst = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
+    sgst = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
+    tax_amount = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
+    shipping_charge = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
+    adjustment = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
+    grand_total = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
+    advanced_paid = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
+    balance = models.DecimalField(max_digits=10, decimal_places=2,blank=True, null=True)
+    Save='Save'
+    Draft='Draft'
+    STATUS_CHOICES = [
+        ('Draft', 'Draft'),
+        ('Save', 'Save'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='Draft') 
+    
+    
+    
+class PurchaseOrderItems(models.Model):
+    item = models.ForeignKey(Items, on_delete=models.CASCADE, blank=True, null=True)
+    hsn = models.CharField(max_length=255)
+    quantity = models.IntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2,blank=True, null=True)
+    discount = models.DecimalField(max_digits=5, decimal_places=2)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, blank=True, null=True)
+    login_details = models.ForeignKey(LoginDetails, on_delete=models.CASCADE, blank=True, null=True)
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE, blank=True, null=True)
+    
+class PurchaseOrderReference(models.Model):
+    reference_number = models.CharField(max_length=255)
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE, blank=True, null=True)
+    login_details = models.ForeignKey(LoginDetails, on_delete=models.CASCADE, blank=True, null=True)
+
+class PurchaseOrderHistory(models.Model):
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE, blank=True, null=True)
+    login_details = models.ForeignKey(LoginDetails, on_delete=models.CASCADE, blank=True, null=True)
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, blank=True, null=True)
+    date = models.DateField(blank=True, null=True)
+    current_date = models.DateField()
+    action = models.CharField(max_length=255)
+    
+class Purchaseorder_comments_table(models.Model):
+    login_details=models.ForeignKey(LoginDetails,on_delete=models.CASCADE,null=True)
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
+    customer=models.ForeignKey(Customer,on_delete=models.CASCADE,null=True)
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, blank=True, null=True)
+    comment=models.TextField(max_length=500)
+    
+class purchaseorder_doc_upload_table(models.Model):
+    login_details=models.ForeignKey(LoginDetails,on_delete=models.CASCADE,null=True)
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
+    customer=models.ForeignKey(Customer,on_delete=models.CASCADE,null=True)
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, blank=True, null=True)
+    title=models.TextField(max_length=200)
+    document=models.FileField(upload_to='doc/')
