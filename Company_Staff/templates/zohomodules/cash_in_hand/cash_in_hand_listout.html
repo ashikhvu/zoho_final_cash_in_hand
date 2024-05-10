@@ -1,13 +1,16 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-<!-- harikrishnan -->
+<!-- ashikh -->
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <link href='https://unpkg.com/css.gg@2.0.0/icons/css/trash.css' rel='stylesheet'>
 <script src="https://cdn.jsdelivr.net/bootstrap.datetimepicker/4.17.37/js/bootstrap-datetimepicker.min.js"></script>
 <script src="https://unpkg.com/@popperjs/core@2/dist/umd/popper.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+
+<!-- htmx -->
+<script src="https://unpkg.com/htmx.org@1.9.6" integrity="sha384-FhXw7b6AlE/jyjlZH5iHa/tTe9EpJ1Y55RjcgPbjeWMskSxZt1v9qkxLJWNJaGni" crossorigin="anonymous"></script>
 
 <style>
         .card{
@@ -145,7 +148,7 @@
                                 <a class="dropdown-item text-black" onclick="filterTable(6,'draft')">Draft</a>
                                 <a class="dropdown-item text-black" onclick="filterTable(6,'saved')">Saved</a>
                             </div> -->
-                            <a style=" border-radius: 5px; height: 2.4rem; display: flex; align-items: center;" data-bs-toggle="modal" href="#importModal" class="btn btn-outline-warning">
+                            <a style=" border-radius: 5px; height: 2.4rem; display: flex; align-items: center;" href="{% url 'cash_in_hand_graph' %}" class="btn btn-outline-warning">
                                 <i class="fa fa-bar-chart p-1" style="font-size: large;"></i>
                                 <span style="font-size: 2vh; margin-left: 0.5rem;" class="text-center">Graph</span>
                             </a>
@@ -159,7 +162,8 @@
                         </div>
     
                     </div>
-                    <form action="" id="date_filter_form">
+                    <form action="{% url 'cash_in_hand_listout' %}" method="POST" id="date_filter_form">
+                        {% csrf_token %}
                         <div class="row mt-4">
                         
                             <div class="col-md-6" >
@@ -167,7 +171,7 @@
                                     <div class="col-md-5">
                                         <div class="d-flex">
                                             <!-- <label class="fs-5 p-2 text-warning " for="">From</label> -->
-                                            <input class="form-control border-warning " style="background-color: rgb(24, 24, 24);"  type="date"  name="" id="start_date" required>
+                                            <input class="form-control border-warning " style="background-color: rgb(24, 24, 24);" value="{{ start_date|date:'Y-m-d' }}"  type="date"  name="start_date" id="start_date" required>
                                         </div>
                                     </div>
                                     <div class="col-md-1">
@@ -178,7 +182,7 @@
                                     </div>
                                     <div class="col-md-5">
                                         <div class="d-flex">
-                                            <input class="form-control border-warning" style="background-color: rgb(24, 24, 24);" type="date" name="" id="end_date" required>
+                                            <input class="form-control border-warning" style="background-color: rgb(24, 24, 24);" value="{{ end_date|date:'Y-m-d' }}" type="date" name="end_date" id="end_date" required>
                                         </div>
                                     </div>
                                     <div class="col-md-1">
@@ -225,19 +229,23 @@
                                     <td>
                                         {% if i.object_action %}
                                         <a onclick="$(`#{{ forloop.counter }}action_bord`).toggle()"><i class="fa fa-ellipsis-v text-light"></i></a>
-                                        <div class="position-relative check_visible" id="{{ forloop.counter }}action_bord" style="display: none;user-select: none;">
+                                        <div onclick="$(this).hide()" class="position-relative check_visible" id="{{ forloop.counter }}action_bord" style="display: none;user-select: none;">
                                             <div class="position-absolute start-50 translate-middle-x">
                                                 <div class="card bg-dark text-start border-light">
                                                     <ul class="py-2 pb-1 m-0">
-                                                        <li class="px-4 li_hover">EDIT</li>
-                                                        <li class="px-4 li_hover">DELETE</li>
-                                                        <li class="px-4 li_hover">HISTORY</li>
+                                                        <a href="{% url 'cash_in_hand_adjust_cash_edit_page' i.id %}"><li class="px-4 li_hover">EDIT</li></a>
+                                                        <a href="{% url 'cash_in_hand_delete' i.id %}" onclick="return confirm('Do you want to delete ')"><li class="px-4 li_hover">DELETE</li></a>
+                                                        <a onclick="get_history(`{{ i.id }}`)"
+                                                        hx-trigger="click delay:0s"
+                                                        hx-target="#target1"
+                                                        hx-get="{% url 'get_cash_history' i.id %}"
+                                                        ><li class="px-4 li_hover">HISTORY</li></a>
                                                     </ul>
                                                 </div>
                                             </div>
                                         </div>
                                         {% else %}
-                                        <i class="fa fa-ellipsis-v" style="color: #555;"></i>
+                                        <i class="fa fa-ellipsis-v" style="color: #494949;"></i>
                                         {% endif %}
                                     </td>
                                     <!-- <td>{{ a.status }}</td>
@@ -296,6 +304,33 @@
         </div>
     </div>
 </div>
+
+
+<!-- modal_history -->
+<div class="modal fade" id="historyModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"  aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content" style="background-color: #3b3b3b;">
+        <div class="modal-header">
+          <h3 class="modal-title text-light" id="exampleModalLabel">HISTORY</h3>
+          <button type="button" class="btn close" data-dismiss="modal" aria-label="Close">
+            <span data-bs-dismiss="modal" aria-hidden="true" style="font-size: x-large;">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body mx-3" style="background-color: #000000;">
+          <div class="container-fluid history-table-container" >
+            <div id="target1">
+
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-warning" onclick="$('#historyModal').modal('hide')" data-dismiss="modal">Close</button>
+  
+        </div>
+      </div>
+    </div>
+  </div>
+  
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 
@@ -480,7 +515,18 @@
     //         }
     //     })
     // })
-</script>
+    function get_history(n){
+        $.ajax({
+            url: `{% url 'get_cash_history' 0 %}`.replace(0,n),
+            type: "GET",
+            success:function(response){
+                $('#historyModal').modal('show')
+            },
+            error:function(error){
 
+            }
+        })
+    }
+</script>
 
 {%endblock%}

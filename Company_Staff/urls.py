@@ -764,6 +764,11 @@ urlpatterns = [
     path('cash_in_hand_adjust_cash', views.cash_in_hand_adjust_cash, name='cash_in_hand_adjust_cash'),
     path('cash_in_hand_statement', views.cash_in_hand_statement, name='cash_in_hand_statement'),
     path('share_cash_in_hand_statement_via_mail', views.share_cash_in_hand_statement_via_mail, name='share_cash_in_hand_statement_via_mail'),
+    path('cash_in_hand_adjust_cash_edit_page/<int:pk>', views.cash_in_hand_adjust_cash_edit_page, name='cash_in_hand_adjust_cash_edit_page'),
+    path('cash_in_hand_adjust_cash_edit/<int:pk>', views.cash_in_hand_adjust_cash_edit, name='cash_in_hand_adjust_cash_edit'),
+    path('cash_in_hand_delete/<int:pk>', views.cash_in_hand_delete, name='cash_in_hand_delete'),
+    path('get_cash_history/<str:pk>', views.get_cash_history, name='get_cash_history'),
+    path('cash_in_hand_graph', views.cash_in_hand_graph, name='cash_in_hand_graph'),
     #End
 
 

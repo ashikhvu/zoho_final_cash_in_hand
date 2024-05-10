@@ -1798,6 +1798,16 @@ class CashInHand(models.Model):
     def __str__(self):
         return self.adjustment
 
+class CashInHandHistory(models.Model):
+    user = models.ForeignKey(LoginDetails,on_delete=models.CASCADE,null=True,blank=True)
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
+    action_choices = (
+        ('Created','Created'),
+        ('Edited','Edited')
+    )
+    cih = models.ForeignKey(CashInHand,on_delete=models.CASCADE,null=True,blank=True)
+    action = models.CharField(max_length=50,choices=action_choices)
+
 class Payment_recieved(models.Model):
     company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE)
     login_details=models.ForeignKey(LoginDetails,on_delete=models.CASCADE)

@@ -253,35 +253,35 @@
             <div class="card mb-5 px-3 py-4" style="background-color: black; border-radius: 1vh;">
               <h1 class="mb-0 text-uppercase text-right" style="color: white; font-weight: bolder;">CASH ADJUST</h1><br>
               <hr class="text-warning">
-              <form action="{% url 'cash_in_hand_adjust_cash' %}" method="post" enctype="multipart/form-data"id="myForm" onsubmit="return validateForm()">
+              <form action="{% url 'cash_in_hand_adjust_cash_edit' cih.id %}" method="post" enctype="multipart/form-data"id="myForm" onsubmit="return validateForm()">
                 {% csrf_token %}
                 <div class="row">
                     <div class="col-md-2 mt-3">
                         <label class="labels" for="">Adjustment:</label>
                     </div>
                     <div class="col-md-4 mt-3">
-                        <select class="form-control text-light" style="background-color: black;" name="adjust" id="adjust_id">
-                            <option selected value="add">ADD CASH</option>
-                            <option  value="reduce">REDUCE CASH</option>
+                        <select class="form-control text-light" style="background-color: black;" value="{{ cih.adjustment }}" name="adjust" id="adjust_id">
+                            <option {% if cih.adjustment == "Add Cash" %} selected {% endif %} value="add">ADD CASH</option>
+                            <option {% if cih.adjustment == "Reduce Cash" %} selected {% endif %} value="reduce">REDUCE CASH</option>
                         </select>
                     </div>
                     <div class="col-md-2 mt-3">
                         <label class="labels" for="">Amount:</label>
                     </div>
                     <div class="col-md-4 mt-3">
-                        <input class="form-control text-light" style="background-color: black;" name="amount" type="number" required>
+                        <input class="form-control text-light" style="background-color: black;" value="{{ cih.amount }}" name="amount" type="number" required>
                     </div>
                     <div class="col-md-2 mt-3">
                         <label class="labels" for="">Adjustment Date:</label>
                     </div>
                     <div class="col-md-4 mt-3">
-                        <input class="form-control text-light" style="background-color: rgb(28, 28, 28);" name="date" type="date" required>
+                        <input class="form-control text-light" style="background-color: rgb(28, 28, 28);" value="{{ cih.date|date:'Y-m-d' }}" name="date" type="date" required>
                     </div>
                     <div class="col-md-2 mt-3">
                         <label class="labels" for="">Description:</label>
                     </div>
                     <div class="col-md-4 mt-3">
-                        <input class="form-control text-light" style="background-color: black;" name="desc" type="text" required>
+                        <input class="form-control text-light" style="background-color: black;" value="{{ cih.description }}" name="desc" type="text" required>
                     </div>
                 </div>
                 

@@ -2,7 +2,7 @@
 {% load static %}
 {% load social_share %}
 {% block content %}
-<!-- harikrishnan -->
+<!-- ashikh -->
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <link href='https://unpkg.com/css.gg@2.0.0/icons/css/trash.css' rel='stylesheet'>
@@ -146,18 +146,18 @@
                                 <a class="dropdown-item text-black" onclick="sortTable(2)">Amount</a>
                             </div>
                         </div> -->
-                        <form action="">
                         <div class="col-md-12">
                             <div class="row">
                                 <div class="d-md-flex justify-content-between">
-
-                                    <div class="d-sm-flex">
-                                        <input class="form-control border-warning " style="background-color: rgb(24, 24, 24);"  type="date"  name="" id="start_date" required>
-                                        <label class="fs-5 p-2 text-warning" for="">To</label>
-                                        <input class="form-control border-warning" style="background-color: rgb(24, 24, 24);" type="date" name="" id="end_date" required>
-                                        <button class="btn btn-outline-warning ms-2" onclick="get_by_date()" type="button">Filter</button>
-                                    </div>
-                            
+                                    <form action="{% url 'cash_in_hand_statement' %}" method="POST">
+                                        {% csrf_token %}
+                                        <div class="d-sm-flex">
+                                            <input class="form-control border-warning " style="background-color: rgb(24, 24, 24);" value="{{ start_date|date:'Y-m-d' }}"  type="date"  name="start_date" id="start_date" required>
+                                            <label class="fs-5 p-2 text-warning" for="">To</label>
+                                            <input class="form-control border-warning" style="background-color: rgb(24, 24, 24);" value="{{ end_date|date:'Y-m-d' }}" type="date" name="end_date" id="end_date" required>
+                                            <button class="btn btn-outline-warning ms-2" onclick="get_by_date()" type="submit">Filter</button>
+                                        </div>
+                                    </form>
                                     <div class="d-sm-flex">
                                         <a style=" border-radius: 5px; height: 2.4rem; display: flex; align-items: center;" data-bs-toggle="modal" onclick="convertToPDF()" class="btn btn-outline-warning me-2">
                                             <i class="fa fa-file-pdf p-1" style="font-size: large;"></i>
@@ -195,7 +195,6 @@
                                 </div>
                             </div>
                         </div>
-                    </form>
                       
     
                  
@@ -484,39 +483,57 @@
 
     //     });
     // })
-    function get_by_date()
-    {
-        var startDate = new Date($('#start_date').val())
-        var endDate = new Date($('#end_date').val())
-        $('.cash_date').each(function(){
-            var ele = new Date($(this).text())
-            if(startDate<=ele&&endDate>=ele)
-            {
-                $(this).parent().show()
-            }
-            else
-            {
-                $(this).parent().hide()
-            }
+    // function get_by_date()
+    // {
+    //     var startDate = new Date($('#start_date').val())
+    //     var endDate = new Date($('#end_date').val())
+    //     $('.cash_date').each(function(){
+    //         var ele = new Date($(this).text())
+    //         if(startDate<=ele&&endDate>=ele)
+    //         {
+    //             $(this).parent().show()
+    //         }
+    //         else
+    //         {
+    //             $(this).parent().hide()
+    //         }
         
-        })
-        rearrange_s_no()
-    }
-    function rearrange_s_no()
-    {
-        var n=1
-        $('.s_no').each(function(){
-            if( $(this).parent().css("display")=="none")
-            {
-                console.log('yes')
-            }
-            else{
-                console.log('no')
-                $(this).text(n)
-                n=n+1
-            }
-        })
-    }
+    //     })
+    //     rearrange_s_no()
+    //     calculate_total()
+    // }
+    // function rearrange_s_no()
+    // {
+    //     var n=1
+    //     $('.s_no').each(function(){
+    //         if( $(this).parent().css("display")=="none")
+    //         {
+    //             console.log('yes')
+    //         }
+    //         else{
+    //             console.log('no')
+    //             $(this).text(n)
+    //             n=n+1
+    //         }
+    //     })
+    // }
+//     function calculate_total() {
+//     var total_balance = 0;
+//     var all_query_set = {{ all_query_set }}; // Assuming all_query_set is a JavaScript array of objects
+//     all_query_set.forEach(function(i) {
+//         if (i.object_type.toUpperCase() === "REDUCE CASH") {
+//             total_balance -= parseFloat(i.object_amount);
+//         } else if (i.object_type.toUpperCase() === "ADD CASH") {
+//             total_balance += parseFloat(i.object_amount);
+//         } else if (i.object_is.toUpperCase() === "ADD") {
+//             total_balance += parseFloat(i.object_amount);
+//         } else if (i.object_is.toUpperCase() === "REDUCE") {
+//             total_balance -= parseFloat(i.object_amount);
+//         }
+//         console.log(total_balance);
+//     });
+// }
+
     // function get_by_date()
     // {
     //     $.ajax({
@@ -528,7 +545,9 @@
     //             csrfmiddlewaretoken: "{{ csrf_token }}",
     //         },
     //         success:function(response){
-                
+    //             // response.forEach(function(i){
+    //             //     console.log(i.object_amount);
+    //             // })
     //         },
     //         error:function(error){
 

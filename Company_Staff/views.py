@@ -32433,8 +32433,36 @@ def cash_in_hand_listout(request):
 
         all_query_set = cash_in_hand+inv+so+recinv+rinv+cn+pay_recieved+bill+recbill+vend_credit+purch_order+expense+rec_expense+pay_made+emp_loan
 
+        all = []
+
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        if request.method == "POST":
+            print('inside POST')
+            if request.POST.get('start_date') and request.POST.get('end_date'):
+                start_date = datetime.strptime(request.POST.get('start_date'),'%Y-%m-%d') 
+                end_date = datetime.strptime(request.POST.get('end_date'),'%Y-%m-%d') 
+                # print(start_date)
+                # print(end_date)
+                # print('*')
+                for i in all_query_set:
+                    # print(str(i.object_date)[:10])
+                    d = str(i.object_date)[:10]
+                    # print(type(d))
+                    my_date = datetime.strptime(d,'%Y-%m-%d')
+                    # print(my_date)
+                    if my_date >=start_date and my_date <= end_date:
+                        all.append(i)
+                print('\n\nsuccess')
+            else:
+                print('failed inside')
+        else:
+            print('failed')
+            all = all_query_set
+            
+        
         total_balance = 0
-        for i in all_query_set:
+        for i in all:
             if i.object_type.upper() == "REDUCE CASH":
                 total_balance -= float(i.object_amount)
             elif i.object_type.upper() == "ADD CASH":
@@ -32443,13 +32471,16 @@ def cash_in_hand_listout(request):
                 total_balance += float(i.object_amount)
             elif i.object_is.upper()== "REDUCE":
                 total_balance -= float(i.object_amount)
+            print(total_balance)
 
         context = {
             'details': dash_details,
             'allmodules': allmodules,
             'item':item,
-            'all_query_set': all_query_set,
+            'all_query_set': all,
             'total_balance':total_balance,
+            'start_date':start_date,
+            'end_date':end_date
         }
         return render(request,'zohomodules/cash_in_hand/cash_in_hand_listout.html',context)
     else:
@@ -32482,9 +32513,11 @@ def cash_in_hand_adjust_cash(request):
             return redirect('/')
         log_details= LoginDetails.objects.get(id=log_id)
         if log_details.user_type == 'Staff':
+            staff = StaffDetails.objects.get(login_details=log_details)
             dash_details = StaffDetails.objects.get(login_details=log_details).company
             allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
         if log_details.user_type == 'Company':
+            staff = None
             dash_details = CompanyDetails.objects.get(login_details=log_details)
             allmodules= ZohoModules.objects.get(company=dash_details,status='New')
 
@@ -32497,7 +32530,10 @@ def cash_in_hand_adjust_cash(request):
             date = request.POST.get('date')
             desc = request.POST.get('desc')
 
-            CashInHand.objects.get_or_create(company=dash_details,adjustment =adj,amount =amt,date =date,description =desc)
+            cih=CashInHand(company=dash_details,adjustment =adj,amount =amt,date =date,description =desc)
+            cih.save()
+
+            CashInHandHistory.objects.create(user=log_details,company=dash_details,cih=cih,action="Created")
 
             context = {'allmodules':allmodules}
             return redirect('cash_in_hand_listout')
@@ -32505,7 +32541,45 @@ def cash_in_hand_adjust_cash(request):
     else:
         return redirect('/')
 
+def cash_in_hand_adjust_cash_edit(request,pk):
+    if 'login_id' in request.session:
+        log_id = request.session['login_id']
+        if 'login_id' not in request.session:
+            return redirect('/')
+        log_details= LoginDetails.objects.get(id=log_id)
+        if log_details.user_type == 'Staff':
+            staff = StaffDetails.objects.get(login_details=log_details)
+            dash_details = StaffDetails.objects.get(login_details=log_details).company
+            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+        if log_details.user_type == 'Company':
+            staff = None
+            dash_details = CompanyDetails.objects.get(login_details=log_details)
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
 
+        if request.method == "POST":
+            cih = CashInHand.objects.get(id=pk)
+
+            if request.POST.get('adjust') == 'reduce':
+                adj = "Reduce Cash"
+            else:
+                adj = "Add Cash"
+            amt = request.POST.get('amount')
+            date = request.POST.get('date')
+            desc = request.POST.get('desc')
+
+            cih.adjustment = adj
+            cih.amount = amt
+            cih.date = date
+            cih.description = desc
+            cih.save()
+
+            CashInHandHistory.objects.create(user=log_details,company=dash_details,cih=cih,action="Edited")
+
+            context = {'allmodules':allmodules}
+            return redirect('cash_in_hand_listout')
+        return render(request,"zohomodules/cash_in_hand/cash_in_hand_add.html",context)
+    else:
+        return redirect('/')
 
 def cash_in_hand_statement(request):
     if 'login_id' in request.session:
@@ -32576,36 +32650,36 @@ def cash_in_hand_statement(request):
 
         all_query_set = cash_in_hand+inv+so+recinv+rinv+cn+pay_recieved+bill+recbill+vend_credit+purch_order+expense+rec_expense+pay_made+emp_loan
         
-        # all = []
+        all = []
 
-        # if request.POST.get('start_date_range') and request.POST.get('end_date_range'):
-        #     start_date = datetime.strptime(request.POST.get('start_date_range'),'%Y-%m-%d') 
-        #     end_date = datetime.strptime(request.POST.get('end_date_range'),'%Y-%m-%d') 
-        #     # print(start_date)
-        #     # print(end_date)
-        #     # print('*')
-        #     for i in all_query_set:
-        #         # print(str(i.object_date)[:10])
-        #         d = str(i.object_date)[:10]
-        #         # print(type(d))
-        #         my_date = datetime.strptime(d,'%Y-%m-%d')
-        #         # print(my_date)
-        #         if my_date >=start_date and my_date <= end_date:
-        #             all.append(i)
-        #     context = {
-        #         'details': dash_details,
-        #         'allmodules': allmodules,
-        #         'item':item,
-        #         'all_query_set': all,
-        #         'total_balance':total_balance,
-        #     }
-        #     return render(request,"zohomodules/cash_in_hand/cash_in_hand_statement.html",context)
-        # else:
-        #     all = all_query_set
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        if request.method == "POST":
+            print('inside POST')
+            if request.POST.get('start_date') and request.POST.get('end_date'):
+                start_date = datetime.strptime(request.POST.get('start_date'),'%Y-%m-%d') 
+                end_date = datetime.strptime(request.POST.get('end_date'),'%Y-%m-%d') 
+                # print(start_date)
+                # print(end_date)
+                # print('*')
+                for i in all_query_set:
+                    # print(str(i.object_date)[:10])
+                    d = str(i.object_date)[:10]
+                    # print(type(d))
+                    my_date = datetime.strptime(d,'%Y-%m-%d') 
+                    # print(my_date)
+                    if my_date >=start_date and my_date <= end_date:
+                        all.append(i)
+                print('\n\nsuccess')
+            else:
+                print('failed inside')
+        else:
+            print('failed')
+            all = all_query_set
             
         
         total_balance = 0
-        for i in all_query_set:
+        for i in all:
             if i.object_type.upper() == "REDUCE CASH":
                 total_balance -= float(i.object_amount)
             elif i.object_type.upper() == "ADD CASH":
@@ -32620,8 +32694,10 @@ def cash_in_hand_statement(request):
             'details': dash_details,
             'allmodules': allmodules,
             'item':item,
-            'all_query_set': all_query_set,
+            'all_query_set': all,
             'total_balance':total_balance,
+            'start_date':start_date,
+            'end_date':end_date
         }
         return render(request,"zohomodules/cash_in_hand/cash_in_hand_statement.html",context)
     else:
@@ -32738,6 +32814,161 @@ def share_cash_in_hand_statement_via_mail(request):
     else:
         return redirect('/')
 # ---------------------------------ashikh vu------( end )------------------------------
+
+def cash_in_hand_adjust_cash_edit_page(request,pk):
+    if 'login_id' in request.session:
+        log_id = request.session['login_id']
+        if 'login_id' not in request.session:
+            return redirect('/')
+        log_details= LoginDetails.objects.get(id=log_id)
+        if log_details.user_type == 'Staff':
+            dash_details = StaffDetails.objects.get(login_details=log_details).company
+            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+        if log_details.user_type == 'Company':
+            dash_details = CompanyDetails.objects.get(login_details=log_details)
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
+
+        cih = CashInHand.objects.get(id=pk)
+        context = {'allmodules':allmodules,'cih':cih}
+        return render(request,"zohomodules/cash_in_hand/cash_in_hand_adjust_cash_edit_page.html",context)
+    else:
+        return redirect('/')
+
+
+def cash_in_hand_delete(request,pk):
+    cih = CashInHand.objects.get(id=pk)
+    cih.delete()
+    return redirect('cash_in_hand_listout')
+
+from django.template.response import TemplateResponse
+
+def get_cash_history(request,pk):
+    history = CashInHandHistory.objects.filter(cih=pk)
+    context={
+        'history':history
+    }
+    print('already in ')
+    return TemplateResponse(request,'zohomodules/cash_in_hand/get_cash_history.html',context)  
+
+def cash_in_hand_graph(request):
+    if 'login_id' in request.session:
+        log_id = request.session['login_id']
+        if 'login_id' not in request.session:
+            return redirect('/')
+        log_details= LoginDetails.objects.get(id=log_id)
+        if log_details.user_type == 'Staff':
+            dash_details = StaffDetails.objects.get(login_details=log_details).company
+            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+        if log_details.user_type == 'Company':
+            dash_details = CompanyDetails.objects.get(login_details=log_details)
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
+
+    item=Items.objects.filter(company=dash_details)
+
+    cash_in_hand = list(CashInHand.objects.filter(company=dash_details).annotate(
+        object_id=F('id'),object_date=F('date'),object_type=F('adjustment'),object_name=Value("",output_field=CharField()),object_amount=F('amount'),object_action=Value(True,output_field=BooleanField()))
+    )
+    inv = list(invoice.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advanced_paid=0).annotate(
+        object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('date'),object_type=Value('Invoice',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advanced_paid'))
+    )
+    so = list(SaleOrder.objects.filter(company=dash_details,status__iexact='Save',payment_method__iexact='Cash').exclude(advanced_paid=0).annotate(
+        object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('sales_order_date'),object_type=Value('Sales Order',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advanced_paid'))
+    )
+    recinv = list(RecurringInvoice.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
+        object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('start_date'),object_type=Value('Recurring Invoice',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance_paid'))
+    )
+    rinv = list(retainer_payment_details.objects.filter(retainer__company=dash_details,retainer__is_sent=True,payment_opt="Cash").exclude(retainer__advance=0).annotate(
+        object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('retainer__created_at'),object_type=Value('Retainer Invoice',output_field=CharField()),object_name=F('retainer__customer_name__first_name'),object_amount=F('retainer__advance'))
+    )
+    cn = list(Credit_Note.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
+        object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('credit_note_date'),object_type=Value('Credit Note',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance_paid'))
+    )
+    pay_recieved=list(Payment_details.objects.filter(company=dash_details,payment_recieved__status__iexact="Saved",payment_recieved__payment_method__iexact='Cash').exclude(payment=0).annotate(
+        object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('Date'),object_type=Value('Payment Recieved',output_field=CharField()),object_name=F('payment_recieved__customer__first_name'),object_amount=F('payment'))
+    )
+    bill = list(Bill.objects.filter(Company=dash_details,Status__iexact="Save",Payment_Method__iexact='Cash').exclude(Advance_amount_Paid=0).annotate(
+        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('Bill_Date'),object_type=Value('Purchase Bill',output_field=CharField()),object_name=F('Vendor__first_name'),object_amount=F('Advance_amount_Paid'))
+    )
+    recbill = list(Recurring_bills.objects.filter(company=dash_details,status__iexact='save',payment_type__iexact='Cash').exclude(paid=0).annotate(
+        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('rec_bill_date'),object_type=Value('Recurring Bill',output_field=CharField()),object_name=F('vendor_details__first_name'),object_amount=F('paid'))
+    )
+    vend_credit = list(debitnote.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
+        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('debitnote_date'),object_type=Value('Vendor Credit / Debit Note',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advance_paid'))
+    )
+    purch_order = list(PurchaseOrder.objects.filter(company=dash_details,status__iexact="Save",payment_method__iexact='Cash').exclude(advanced_paid=0).annotate(
+        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('purchase_order_date'),object_type=Value('Purchase Order',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advanced_paid'))
+    )
+    expense = list(Expense.objects.filter(company=dash_details,status__iexact="Save",payment_type__iexact='Cash').annotate(
+        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('date'),object_type=Value('Expense',output_field=CharField()),object_name=F('vendor_name'),object_amount=F('amount'))
+    )
+    rec_expense = list(Recurring_Expense.objects.filter(company=dash_details,status__iexact="Active",Payment_Method__iexact='Cash').annotate(
+        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('exp_date'),object_type=Value('Recurring Expense',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('amount'))
+    )
+    pay_made=list(payment_made.objects.filter(company=dash_details,status__iexact="Saved",payment_method__iexact='Cash').exclude(Q(total=F('balance')) | Q(total=None) | Q(balance=None)).annotate(
+        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Payment Made',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=(F('total')-F('balance')))
+    )
+    emp_loan = list(EmployeeLoan.objects.filter(company=dash_details,active=1,payment_method__iexact='Cash').annotate(
+        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('Loandate'),object_type=Value('Employee Loan',output_field=CharField()),object_name=F('Employee__first_name'),object_amount=F('balance'))
+    )
+
+    all_query_set = cash_in_hand+inv+so+recinv+rinv+cn+pay_recieved+bill+recbill+vend_credit+purch_order+expense+rec_expense+pay_made+emp_loan
+
+    total_balance = 0
+    cashin = 0
+    cashout = 0
+
+    label = []
+    data1 = []
+    data2 = []
+
+    current_year = datetime.today().year
+    current_month = datetime.today().month
+
+
+    for month in range(1, current_month + 1):
+        label.append(datetime(current_year, month, 1).strftime("%B"))
+        cashin = 0
+        cashout = 0
+        for i in all_query_set:
+            d = str(i.object_date)
+            month_digit = int(d[5:7].lstrip('0'))
+            if month == month_digit and i.object_type.upper() == "REDUCE CASH":
+                total_balance -= float(i.object_amount)
+                cashout +=  float(i.object_amount)
+            elif month == month_digit and i.object_type.upper() == "ADD CASH":
+                total_balance += float(i.object_amount)
+                cashin +=  float(i.object_amount)
+            elif month == month_digit and i.object_is.upper()== "ADD":
+                total_balance += float(i.object_amount)
+                cashin +=  float(i.object_amount)
+            elif month == month_digit and i.object_is.upper()== "REDUCE":
+                total_balance -= float(i.object_amount)
+                cashout +=  float(i.object_amount)
+        data1.append(float(cashin))
+        data2.append(float(cashout))
+
+    print(label)
+
+    context = {
+        'details': dash_details,
+        'allmodules': allmodules,
+        'item':item,
+        'cashIn':data1,
+        'cashOut':data2,
+        'label':label,
+        'all_query_set': all_query_set,
+        'total_balance':total_balance,
+    }     
+    # context = {'allmodules':allmodules,
+    #             'com':dash_details,
+    #             'cmp':dash_details.id,
+    #             'data':data1,
+    #             'cashIn':data1,
+    #             'cashOut':data2,
+    #             'label':"Asdasd",
+    #             'period': "hggfhfgh"}
+    return render(request,"zohomodules/cash_in_hand/cash_in_hand_graph.html",context)
+
 
 
 #End
