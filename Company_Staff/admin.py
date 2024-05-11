@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Bill,Expense,PurchaseOrder,RetainerInvoice,payment_made,Payment_details,Payment_recieved
+from .models import Bill,Expense,PurchaseOrder,RetainerInvoice,payment_made,Payment_details,Payment_recieved,LoanRepayemnt
 # Register your models here.
 
 admin.site.register(Bill)
@@ -9,3 +9,4 @@ admin.site.register(RetainerInvoice)
 admin.site.register(payment_made)
 admin.site.register(Payment_details)
 admin.site.register(Payment_recieved)
+admin.site.register(LoanRepayemnt)

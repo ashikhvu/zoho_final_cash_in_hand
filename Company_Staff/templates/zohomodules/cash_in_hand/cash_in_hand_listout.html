@@ -13,6 +13,9 @@
 <script src="https://unpkg.com/htmx.org@1.9.6" integrity="sha384-FhXw7b6AlE/jyjlZH5iHa/tTe9EpJ1Y55RjcgPbjeWMskSxZt1v9qkxLJWNJaGni" crossorigin="anonymous"></script>
 
 <style>
+    ::-webkit-calendar-picker-indicator {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" viewBox="0 0 24 24"><path fill="%23bbbbbb" d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"/></svg>');
+}
         .card{
             background: none;
         }
@@ -148,7 +151,7 @@
                                 <a class="dropdown-item text-black" onclick="filterTable(6,'draft')">Draft</a>
                                 <a class="dropdown-item text-black" onclick="filterTable(6,'saved')">Saved</a>
                             </div> -->
-                            <a style=" border-radius: 5px; height: 2.4rem; display: flex; align-items: center;" href="{% url 'cash_in_hand_graph' %}" class="btn btn-outline-warning">
+                            <a style=" border-radius: 5px; height: 2.4rem; display: flex; align-items: center;" href="{% url 'cash_in_hand_graph' 'period' %}" class="btn btn-outline-warning">
                                 <i class="fa fa-bar-chart p-1" style="font-size: large;"></i>
                                 <span style="font-size: 2vh; margin-left: 0.5rem;" class="text-center">Graph</span>
                             </a>
@@ -162,45 +165,32 @@
                         </div>
     
                     </div>
-                    <form action="{% url 'cash_in_hand_listout' %}" method="POST" id="date_filter_form">
-                        {% csrf_token %}
                         <div class="row mt-4">
                         
-                            <div class="col-md-6" >
+                            <div class="col-md-12" >
                                 <div class="row">
-                                    <div class="col-md-5">
-                                        <div class="d-flex">
-                                            <!-- <label class="fs-5 p-2 text-warning " for="">From</label> -->
-                                            <input class="form-control border-warning " style="background-color: rgb(24, 24, 24);" value="{{ start_date|date:'Y-m-d' }}"  type="date"  name="start_date" id="start_date" required>
+                                    <div class="d-md-flex justify-content-between">
+                                        <form action="{% url 'cash_in_hand_listout' %}" method="POST">
+                                            {% csrf_token %}
+                                            <div class="d-sm-flex">
+                                                <input class="form-control border-warning " style="background-color: rgb(24, 24, 24);" value="{{ start_date|date:'Y-m-d' }}"  type="date"  name="start_date" id="start_date" required>
+                                                <label class="fs-5 p-2 text-warning" for="">To</label>
+                                                <input class="form-control border-warning" style="background-color: rgb(24, 24, 24);" value="{{ end_date|date:'Y-m-d' }}" type="date" name="end_date" id="end_date" required>
+                                                <button class="btn btn-outline-warning ms-2"  type="submit">Filter</button>
+                                            </div>
+                                        </form>
+
+                                        <div class="d-flex justify-content-end">
+                                            <h1 class="text-warning"><strong>BALANCE: <span class="ps-3">{{ total_balance|floatformat:2 }}</span></strong></h1>
                                         </div>
                                     </div>
-                                    <div class="col-md-1">
-                                        <div class="d-flex">
-                                            <label class="fs-5 p-2 me-2 text-warning" for="">To</label>
-                                            <!-- <input class="form-control border-warning" style="background-color: rgb(24, 24, 24);" type="date" name="" id=""> -->
-                                        </div>
-                                    </div>
-                                    <div class="col-md-5">
-                                        <div class="d-flex">
-                                            <input class="form-control border-warning" style="background-color: rgb(24, 24, 24);" value="{{ end_date|date:'Y-m-d' }}" type="date" name="end_date" id="end_date" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-1">
-                                        <div class="d-flex">
-                                            <button class="btn btn-outline-warning" type="submit">Filter</button>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="d-flex justify-content-end">
-                                    <h1 class="text-warning"><strong>BALANCE: <span class="ps-3">{{ total_balance|floatformat:2 }}</span></strong></h1>
-                                </div>
-                            </div>
+                            <!-- <div class="col-md-6">
+                                
+                            </div> -->
                             
                         
                         </div>
-                    </form>
 
                     <div class="container-fluid table-responsive-md ">
                         <br>

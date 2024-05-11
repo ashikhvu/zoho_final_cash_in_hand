@@ -32366,13 +32366,21 @@ from django.db.models import F,Value,CharField,BooleanField,FloatField
 
 def cash_in_hand_listout(request):
     if 'login_id' in request.session:
+        # if log_details.user_type == 'Company':
+        #     cmp = CompanyDetails.objects.get(login_details = log_details)
+        #     dash_details = CompanyDetails.objects.get(login_details=log_details)
+        # else:
+        #     cmp = StaffDetails.objects.get(login_details = log_details).company
+        #     dash_details = StaffDetails.objects.get(login_details=log_details)
+        # allmodules= ZohoModules.objects.get(company = cmp)
+
         log_id = request.session['login_id']
         if 'login_id' not in request.session:
             return redirect('/')
         log_details= LoginDetails.objects.get(id=log_id)
         if log_details.user_type == 'Staff':
             dash_details = StaffDetails.objects.get(login_details=log_details).company
-            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
         if log_details.user_type == 'Company':
             dash_details = CompanyDetails.objects.get(login_details=log_details)
             allmodules= ZohoModules.objects.get(company=dash_details,status='New')
@@ -32395,7 +32403,7 @@ def cash_in_hand_listout(request):
             object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('retainer__created_at'),object_type=Value('Retainer Invoice',output_field=CharField()),object_name=F('retainer__customer_name__first_name'),object_amount=F('retainer__advance'))
         )
         cn = list(Credit_Note.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
-            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('credit_note_date'),object_type=Value('Credit Note',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance_paid'))
+            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('credit_note_date'),object_type=Value('Credit Note',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance_paid'))
         )
         pay_recieved=list(Payment_details.objects.filter(company=dash_details,payment_recieved__status__iexact="Saved",payment_recieved__payment_method__iexact='Cash').exclude(payment=0).annotate(
             object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('Date'),object_type=Value('Payment Recieved',output_field=CharField()),object_name=F('payment_recieved__customer__first_name'),object_amount=F('payment'))
@@ -32407,7 +32415,7 @@ def cash_in_hand_listout(request):
             object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('rec_bill_date'),object_type=Value('Recurring Bill',output_field=CharField()),object_name=F('vendor_details__first_name'),object_amount=F('paid'))
         )
         vend_credit = list(debitnote.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
-            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('debitnote_date'),object_type=Value('Vendor Credit / Debit Note',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advance_paid'))
+            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('debitnote_date'),object_type=Value('Vendor Credit / Debit Note',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advance_paid'))
         )
         purch_order = list(PurchaseOrder.objects.filter(company=dash_details,status__iexact="Save",payment_method__iexact='Cash').exclude(advanced_paid=0).annotate(
             object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('purchase_order_date'),object_type=Value('Purchase Order',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advanced_paid'))
@@ -32421,17 +32429,26 @@ def cash_in_hand_listout(request):
         pay_made=list(payment_made.objects.filter(company=dash_details,status__iexact="Saved",payment_method__iexact='Cash').exclude(Q(total=F('balance')) | Q(total=None) | Q(balance=None)).annotate(
             object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Payment Made',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=(F('total')-F('balance')))
         )
-        emp_loan = list(EmployeeLoan.objects.filter(company=dash_details,active=1,payment_method__iexact='Cash').annotate(
-            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('Loandate'),object_type=Value('Employee Loan',output_field=CharField()),object_name=F('Employee__first_name'),object_amount=F('balance'))
+        emp_loan = list(EmployeeLoanRepayment.objects.filter(company=dash_details,payment_method__iexact='Cash',particular__iexact="LOAN ISSUED").annotate(
+            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Employee Loan',output_field=CharField()),object_name=F('employee__first_name'),object_amount=F('principal_amount'))
         )
-
-        1# estimagte has no payment type cash
-        # estimate = list(Estimate.objects.filter(company=dash_details,status__iexact="Saved",payment_method__iexact='Cash').exclude(Q(total=F('balance')) | Q(total=None) | Q(balance=None)).annotate(
-        #     object_id=F('id'),object_date=F('payment_date'),object_type=Value('Payment Made',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=(F('total')-F('balance')))
-        # )
-        2# delivery challan has no payment type cash
-
-        all_query_set = cash_in_hand+inv+so+recinv+rinv+cn+pay_recieved+bill+recbill+vend_credit+purch_order+expense+rec_expense+pay_made+emp_loan
+        emp_repay_or_emi = list(EmployeeLoanRepayment.objects.filter(company=dash_details,payment_method__iexact='Cash',particular__iexact="EMI PAID").annotate(
+            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('payment_date'),object_type=Value('EMI Paid',output_field=CharField()),object_name=F('employee__first_name'),object_amount=F('interest_amonut')+F('total_payment'))
+        )
+        emp_repay_new_loan = list(EmployeeLoanRepayment.objects.filter(company=dash_details,payment_method__iexact='Cash',particular__iexact="ADDITIONAL LOAN ISSUED").annotate(
+            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Additional Lone',output_field=CharField()),object_name=F('employee__first_name'),object_amount=F('total_payment'))
+        )
+        loan_acc = list(loan_account.objects.filter(company=dash_details,status__iexact="Active",payment_method__iexact='Cash').annotate(
+            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('loan_date'),object_type=Value('Loan Account',output_field=CharField()),object_name=F('company__company_name'),object_amount=F('loan_amount'))
+        )
+        loan_acc_additional_loan = list(LoanRepayemnt.objects.filter(company=dash_details,payment_method__iexact='Cash',type__iexact="Additional Loan").annotate(
+            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Loan Account Additional Loan',output_field=CharField()),object_name=F('company__company_name'),object_amount=F('total_amount'))
+        )
+        loan_acc_emi = list(LoanRepayemnt.objects.filter(company=dash_details,payment_method__iexact='Cash',type__iexact="EMI paid").annotate(
+            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Loan Account EMI paid',output_field=CharField()),object_name=F('company__company_name'),object_amount=F('total_amount'))
+        )
+        all_query_set = cash_in_hand+inv+so+recinv+rinv+cn+pay_recieved+bill+recbill+vend_credit+purch_order+expense+rec_expense+pay_made+emp_loan+emp_repay_or_emi+emp_repay_new_loan+loan_acc+loan_acc_additional_loan+loan_acc_emi
+        
 
         all = []
 
@@ -32495,7 +32512,7 @@ def cash_in_hand_add(request):
         log_details= LoginDetails.objects.get(id=log_id)
         if log_details.user_type == 'Staff':
             dash_details = StaffDetails.objects.get(login_details=log_details).company
-            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
         if log_details.user_type == 'Company':
             dash_details = CompanyDetails.objects.get(login_details=log_details)
             allmodules= ZohoModules.objects.get(company=dash_details,status='New')
@@ -32515,7 +32532,7 @@ def cash_in_hand_adjust_cash(request):
         if log_details.user_type == 'Staff':
             staff = StaffDetails.objects.get(login_details=log_details)
             dash_details = StaffDetails.objects.get(login_details=log_details).company
-            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
         if log_details.user_type == 'Company':
             staff = None
             dash_details = CompanyDetails.objects.get(login_details=log_details)
@@ -32550,7 +32567,7 @@ def cash_in_hand_adjust_cash_edit(request,pk):
         if log_details.user_type == 'Staff':
             staff = StaffDetails.objects.get(login_details=log_details)
             dash_details = StaffDetails.objects.get(login_details=log_details).company
-            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
         if log_details.user_type == 'Company':
             staff = None
             dash_details = CompanyDetails.objects.get(login_details=log_details)
@@ -32589,7 +32606,7 @@ def cash_in_hand_statement(request):
         log_details= LoginDetails.objects.get(id=log_id)
         if log_details.user_type == 'Staff':
             dash_details = StaffDetails.objects.get(login_details=log_details).company
-            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
         if log_details.user_type == 'Company':
             dash_details = CompanyDetails.objects.get(login_details=log_details)
             allmodules= ZohoModules.objects.get(company=dash_details,status='New')
@@ -32612,7 +32629,7 @@ def cash_in_hand_statement(request):
             object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('retainer__created_at'),object_type=Value('Retainer Invoice',output_field=CharField()),object_name=F('retainer__customer_name__first_name'),object_amount=F('retainer__advance'))
         )
         cn = list(Credit_Note.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
-            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('credit_note_date'),object_type=Value('Credit Note',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance_paid'))
+            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('credit_note_date'),object_type=Value('Credit Note',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance_paid'))
         )
         pay_recieved=list(Payment_details.objects.filter(company=dash_details,payment_recieved__status__iexact="Saved",payment_recieved__payment_method__iexact='Cash').exclude(payment=0).annotate(
             object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('Date'),object_type=Value('Payment Recieved',output_field=CharField()),object_name=F('payment_recieved__customer__first_name'),object_amount=F('payment'))
@@ -32624,7 +32641,7 @@ def cash_in_hand_statement(request):
             object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('rec_bill_date'),object_type=Value('Recurring Bill',output_field=CharField()),object_name=F('vendor_details__first_name'),object_amount=F('paid'))
         )
         vend_credit = list(debitnote.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
-            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('debitnote_date'),object_type=Value('Vendor Credit / Debit Note',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advance_paid'))
+            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('debitnote_date'),object_type=Value('Vendor Credit / Debit Note',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advance_paid'))
         )
         purch_order = list(PurchaseOrder.objects.filter(company=dash_details,status__iexact="Save",payment_method__iexact='Cash').exclude(advanced_paid=0).annotate(
             object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('purchase_order_date'),object_type=Value('Purchase Order',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advanced_paid'))
@@ -32638,17 +32655,25 @@ def cash_in_hand_statement(request):
         pay_made=list(payment_made.objects.filter(company=dash_details,status__iexact="Saved",payment_method__iexact='Cash').exclude(Q(total=F('balance')) | Q(total=None) | Q(balance=None)).annotate(
             object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Payment Made',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=(F('total')-F('balance')))
         )
-        emp_loan = list(EmployeeLoan.objects.filter(company=dash_details,active=1,payment_method__iexact='Cash').annotate(
-            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('Loandate'),object_type=Value('Employee Loan',output_field=CharField()),object_name=F('Employee__first_name'),object_amount=F('balance'))
+        emp_loan = list(EmployeeLoanRepayment.objects.filter(company=dash_details,payment_method__iexact='Cash',particular__iexact="LOAN ISSUED").annotate(
+            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Employee Loan',output_field=CharField()),object_name=F('employee__first_name'),object_amount=F('principal_amount'))
         )
-
-        1# estimagte has no payment type cash
-        # estimate = list(Estimate.objects.filter(company=dash_details,status__iexact="Saved",payment_method__iexact='Cash').exclude(Q(total=F('balance')) | Q(total=None) | Q(balance=None)).annotate(
-        #     object_id=F('id'),object_date=F('payment_date'),object_type=Value('Payment Made',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=(F('total')-F('balance')))
-        # )
-        2# delivery challan has no payment type cash
-
-        all_query_set = cash_in_hand+inv+so+recinv+rinv+cn+pay_recieved+bill+recbill+vend_credit+purch_order+expense+rec_expense+pay_made+emp_loan
+        emp_repay_or_emi = list(EmployeeLoanRepayment.objects.filter(company=dash_details,payment_method__iexact='Cash',particular__iexact="EMI PAID").annotate(
+            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('payment_date'),object_type=Value('EMI Paid',output_field=CharField()),object_name=F('employee__first_name'),object_amount=F('interest_amonut')+F('total_payment'))
+        )
+        emp_repay_new_loan = list(EmployeeLoanRepayment.objects.filter(company=dash_details,payment_method__iexact='Cash',particular__iexact="ADDITIONAL LOAN ISSUED").annotate(
+            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Additional Lone',output_field=CharField()),object_name=F('employee__first_name'),object_amount=F('total_payment'))
+        )
+        loan_acc = list(loan_account.objects.filter(company=dash_details,status__iexact="Active",payment_method__iexact='Cash').annotate(
+            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('loan_date'),object_type=Value('Loan Account',output_field=CharField()),object_name=F('company__company_name'),object_amount=F('loan_amount'))
+        )
+        loan_acc_additional_loan = list(LoanRepayemnt.objects.filter(company=dash_details,payment_method__iexact='Cash',type__iexact="Additional Loan").annotate(
+            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Loan Account Additional Loan',output_field=CharField()),object_name=F('company__company_name'),object_amount=F('total_amount'))
+        )
+        loan_acc_emi = list(LoanRepayemnt.objects.filter(company=dash_details,payment_method__iexact='Cash',type__iexact="EMI paid").annotate(
+            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Loan Account EMI paid',output_field=CharField()),object_name=F('company__company_name'),object_amount=F('total_amount'))
+        )
+        all_query_set = cash_in_hand+inv+so+recinv+rinv+cn+pay_recieved+bill+recbill+vend_credit+purch_order+expense+rec_expense+pay_made+emp_loan+emp_repay_or_emi+emp_repay_new_loan+loan_acc+loan_acc_additional_loan+loan_acc_emi
         
         all = []
 
@@ -32711,7 +32736,7 @@ def share_cash_in_hand_statement_via_mail(request):
         log_details= LoginDetails.objects.get(id=log_id)
         if log_details.user_type == 'Staff':
             dash_details = StaffDetails.objects.get(login_details=log_details).company
-            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
         if log_details.user_type == 'Company':
             dash_details = CompanyDetails.objects.get(login_details=log_details)
             allmodules= ZohoModules.objects.get(company=dash_details,status='New')
@@ -32734,7 +32759,7 @@ def share_cash_in_hand_statement_via_mail(request):
             object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('retainer__created_at'),object_type=Value('Retainer Invoice',output_field=CharField()),object_name=F('retainer__customer_name__first_name'),object_amount=F('retainer__advance'))
         )
         cn = list(Credit_Note.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
-            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('credit_note_date'),object_type=Value('Credit Note',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance_paid'))
+            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('credit_note_date'),object_type=Value('Credit Note',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance_paid'))
         )
         pay_recieved=list(Payment_details.objects.filter(company=dash_details,payment_recieved__status__iexact="Saved",payment_recieved__payment_method__iexact='Cash').exclude(payment=0).annotate(
             object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('Date'),object_type=Value('Payment Recieved',output_field=CharField()),object_name=F('payment_recieved__customer__first_name'),object_amount=F('payment'))
@@ -32746,7 +32771,7 @@ def share_cash_in_hand_statement_via_mail(request):
             object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('rec_bill_date'),object_type=Value('Recurring Bill',output_field=CharField()),object_name=F('vendor_details__first_name'),object_amount=F('paid'))
         )
         vend_credit = list(debitnote.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
-            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('debitnote_date'),object_type=Value('Vendor Credit / Debit Note',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advance_paid'))
+            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('debitnote_date'),object_type=Value('Vendor Credit / Debit Note',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advance_paid'))
         )
         purch_order = list(PurchaseOrder.objects.filter(company=dash_details,status__iexact="Save",payment_method__iexact='Cash').exclude(advanced_paid=0).annotate(
             object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('purchase_order_date'),object_type=Value('Purchase Order',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advanced_paid'))
@@ -32760,11 +32785,25 @@ def share_cash_in_hand_statement_via_mail(request):
         pay_made=list(payment_made.objects.filter(company=dash_details,status__iexact="Saved",payment_method__iexact='Cash').exclude(Q(total=F('balance')) | Q(total=None) | Q(balance=None)).annotate(
             object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Payment Made',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=(F('total')-F('balance')))
         )
-        emp_loan = list(EmployeeLoan.objects.filter(company=dash_details,active=1,payment_method__iexact='Cash').annotate(
-            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('Loandate'),object_type=Value('Employee Loan',output_field=CharField()),object_name=F('Employee__first_name'),object_amount=F('balance'))
+        emp_loan = list(EmployeeLoanRepayment.objects.filter(company=dash_details,payment_method__iexact='Cash',particular__iexact="LOAN ISSUED").annotate(
+            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Employee Loan',output_field=CharField()),object_name=F('employee__first_name'),object_amount=F('principal_amount'))
         )
-
-        all_query_set = cash_in_hand+inv+so+recinv+rinv+cn+pay_recieved+bill+recbill+vend_credit+purch_order+expense+rec_expense+pay_made+emp_loan
+        emp_repay_or_emi = list(EmployeeLoanRepayment.objects.filter(company=dash_details,payment_method__iexact='Cash',particular__iexact="EMI PAID").annotate(
+            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('payment_date'),object_type=Value('EMI Paid',output_field=CharField()),object_name=F('employee__first_name'),object_amount=F('interest_amonut')+F('total_payment'))
+        )
+        emp_repay_new_loan = list(EmployeeLoanRepayment.objects.filter(company=dash_details,payment_method__iexact='Cash',particular__iexact="ADDITIONAL LOAN ISSUED").annotate(
+            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Additional Lone',output_field=CharField()),object_name=F('employee__first_name'),object_amount=F('total_payment'))
+        )
+        loan_acc = list(loan_account.objects.filter(company=dash_details,status__iexact="Active",payment_method__iexact='Cash').annotate(
+            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('loan_date'),object_type=Value('Loan Account',output_field=CharField()),object_name=F('company__company_name'),object_amount=F('loan_amount'))
+        )
+        loan_acc_additional_loan = list(LoanRepayemnt.objects.filter(company=dash_details,payment_method__iexact='Cash',type__iexact="Additional Loan").annotate(
+            object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Loan Account Additional Loan',output_field=CharField()),object_name=F('company__company_name'),object_amount=F('total_amount'))
+        )
+        loan_acc_emi = list(LoanRepayemnt.objects.filter(company=dash_details,payment_method__iexact='Cash',type__iexact="EMI paid").annotate(
+            object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Loan Account EMI paid',output_field=CharField()),object_name=F('company__company_name'),object_amount=F('total_amount'))
+        )
+        all_query_set = cash_in_hand+inv+so+recinv+rinv+cn+pay_recieved+bill+recbill+vend_credit+purch_order+expense+rec_expense+pay_made+emp_loan+emp_repay_or_emi+emp_repay_new_loan+loan_acc+loan_acc_additional_loan+loan_acc_emi
 
         total_balance = 0
         for i in all_query_set:
@@ -32813,7 +32852,7 @@ def share_cash_in_hand_statement_via_mail(request):
         return redirect('cash_in_hand_statement')
     else:
         return redirect('/')
-# ---------------------------------ashikh vu------( end )------------------------------
+
 
 def cash_in_hand_adjust_cash_edit_page(request,pk):
     if 'login_id' in request.session:
@@ -32823,7 +32862,7 @@ def cash_in_hand_adjust_cash_edit_page(request,pk):
         log_details= LoginDetails.objects.get(id=log_id)
         if log_details.user_type == 'Staff':
             dash_details = StaffDetails.objects.get(login_details=log_details).company
-            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
         if log_details.user_type == 'Company':
             dash_details = CompanyDetails.objects.get(login_details=log_details)
             allmodules= ZohoModules.objects.get(company=dash_details,status='New')
@@ -32850,7 +32889,7 @@ def get_cash_history(request,pk):
     print('already in ')
     return TemplateResponse(request,'zohomodules/cash_in_hand/get_cash_history.html',context)  
 
-def cash_in_hand_graph(request):
+def cash_in_hand_graph(request,period):
     if 'login_id' in request.session:
         log_id = request.session['login_id']
         if 'login_id' not in request.session:
@@ -32858,10 +32897,11 @@ def cash_in_hand_graph(request):
         log_details= LoginDetails.objects.get(id=log_id)
         if log_details.user_type == 'Staff':
             dash_details = StaffDetails.objects.get(login_details=log_details).company
-            allmodules= ZohoModules.objects.get(company=dash_details.company,status='New')
+            allmodules= ZohoModules.objects.get(company=dash_details,status='New')
         if log_details.user_type == 'Company':
             dash_details = CompanyDetails.objects.get(login_details=log_details)
             allmodules= ZohoModules.objects.get(company=dash_details,status='New')
+
 
     item=Items.objects.filter(company=dash_details)
 
@@ -32881,7 +32921,7 @@ def cash_in_hand_graph(request):
         object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('retainer__created_at'),object_type=Value('Retainer Invoice',output_field=CharField()),object_name=F('retainer__customer_name__first_name'),object_amount=F('retainer__advance'))
     )
     cn = list(Credit_Note.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
-        object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('credit_note_date'),object_type=Value('Credit Note',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance_paid'))
+        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('credit_note_date'),object_type=Value('Credit Note',output_field=CharField()),object_name=F('customer__first_name'),object_amount=F('advance_paid'))
     )
     pay_recieved=list(Payment_details.objects.filter(company=dash_details,payment_recieved__status__iexact="Saved",payment_recieved__payment_method__iexact='Cash').exclude(payment=0).annotate(
         object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('Date'),object_type=Value('Payment Recieved',output_field=CharField()),object_name=F('payment_recieved__customer__first_name'),object_amount=F('payment'))
@@ -32893,7 +32933,7 @@ def cash_in_hand_graph(request):
         object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('rec_bill_date'),object_type=Value('Recurring Bill',output_field=CharField()),object_name=F('vendor_details__first_name'),object_amount=F('paid'))
     )
     vend_credit = list(debitnote.objects.filter(company=dash_details,status__iexact='Saved',payment_method__iexact='Cash').exclude(advance_paid=0).annotate(
-        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('debitnote_date'),object_type=Value('Vendor Credit / Debit Note',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advance_paid'))
+        object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('debitnote_date'),object_type=Value('Vendor Credit / Debit Note',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advance_paid'))
     )
     purch_order = list(PurchaseOrder.objects.filter(company=dash_details,status__iexact="Save",payment_method__iexact='Cash').exclude(advanced_paid=0).annotate(
         object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('purchase_order_date'),object_type=Value('Purchase Order',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=F('advanced_paid'))
@@ -32907,11 +32947,25 @@ def cash_in_hand_graph(request):
     pay_made=list(payment_made.objects.filter(company=dash_details,status__iexact="Saved",payment_method__iexact='Cash').exclude(Q(total=F('balance')) | Q(total=None) | Q(balance=None)).annotate(
         object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Payment Made',output_field=CharField()),object_name=F('vendor__first_name'),object_amount=(F('total')-F('balance')))
     )
-    emp_loan = list(EmployeeLoan.objects.filter(company=dash_details,active=1,payment_method__iexact='Cash').annotate(
-        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('Loandate'),object_type=Value('Employee Loan',output_field=CharField()),object_name=F('Employee__first_name'),object_amount=F('balance'))
+    emp_loan = list(EmployeeLoanRepayment.objects.filter(company=dash_details,payment_method__iexact='Cash',particular__iexact="LOAN ISSUED").annotate(
+        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Employee Loan',output_field=CharField()),object_name=F('employee__first_name'),object_amount=F('principal_amount'))
     )
-
-    all_query_set = cash_in_hand+inv+so+recinv+rinv+cn+pay_recieved+bill+recbill+vend_credit+purch_order+expense+rec_expense+pay_made+emp_loan
+    emp_repay_or_emi = list(EmployeeLoanRepayment.objects.filter(company=dash_details,payment_method__iexact='Cash',particular__iexact="EMI PAID").annotate(
+        object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('payment_date'),object_type=Value('EMI Paid',output_field=CharField()),object_name=F('employee__first_name'),object_amount=F('interest_amonut')+F('total_payment'))
+    )
+    emp_repay_new_loan = list(EmployeeLoanRepayment.objects.filter(company=dash_details,payment_method__iexact='Cash',particular__iexact="ADDITIONAL LOAN ISSUED").annotate(
+        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Additional Lone',output_field=CharField()),object_name=F('employee__first_name'),object_amount=F('total_payment'))
+    )
+    loan_acc = list(loan_account.objects.filter(company=dash_details,status__iexact="Active",payment_method__iexact='Cash').annotate(
+        object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('loan_date'),object_type=Value('Loan Account',output_field=CharField()),object_name=F('company__company_name'),object_amount=F('loan_amount'))
+    )
+    loan_acc_additional_loan = list(LoanRepayemnt.objects.filter(company=dash_details,payment_method__iexact='Cash',type__iexact="Additional Loan").annotate(
+        object_id=F('id'),object_is=Value('ADD',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Loan Account Additional Loan',output_field=CharField()),object_name=F('company__company_name'),object_amount=F('total_amount'))
+    )
+    loan_acc_emi = list(LoanRepayemnt.objects.filter(company=dash_details,payment_method__iexact='Cash',type__iexact="EMI paid").annotate(
+        object_id=F('id'),object_is=Value('REDUCE',output_field=CharField()),object_date=F('payment_date'),object_type=Value('Loan Account EMI paid',output_field=CharField()),object_name=F('company__company_name'),object_amount=F('total_amount'))
+    )
+    all_query_set = cash_in_hand+inv+so+recinv+rinv+cn+pay_recieved+bill+recbill+vend_credit+purch_order+expense+rec_expense+pay_made+emp_loan+emp_repay_or_emi+emp_repay_new_loan+loan_acc+loan_acc_additional_loan+loan_acc_emi
 
     total_balance = 0
     cashin = 0
@@ -32924,51 +32978,97 @@ def cash_in_hand_graph(request):
     current_year = datetime.today().year
     current_month = datetime.today().month
 
+    period_MY = ''
+    if request.POST.get('period_M_or_Y'):
+        period_MY = request.POST.get('period_M_or_Y')
+        print(f'yes  {period_MY}')
+    else:
+        print('no')
+    # print(f"{str(date.today().year)[0:4]}")
+    # for month in range(1, current_month + 1):
+    if period_MY == 'year':
+        print('inside first for loop')
+        for yr in range((date.today().year)-9, (date.today().year)+1):
+            label.append(yr)
+            cashin = 0
+            cashout = 0
+            for i in all_query_set:
+                d = str(i.object_date)
+                year_digit = d[0:4]
+                print(yr,year_digit)
+                # print(type(d),d,type(year_digit),year_digit)
+                if str(yr) == year_digit and i.object_type.upper() == "REDUCE CASH":
+                    print('coorect1')
+                    total_balance -= float(i.object_amount)
+                    cashout +=  float(i.object_amount)
+                elif str(yr) == year_digit and i.object_type.upper() == "ADD CASH":
+                    print('coorect2')
+                    total_balance += float(i.object_amount)
+                    cashin +=  float(i.object_amount)
+                elif str(yr) == year_digit and i.object_is.upper()== "ADD":
+                    print('coorect3')
+                    total_balance += float(i.object_amount)
+                    cashin +=  float(i.object_amount)
+                elif str(yr) == year_digit and i.object_is.upper()== "REDUCE":
+                    print('coorect4')
+                    total_balance -= float(i.object_amount)
+                    cashout +=  float(i.object_amount)
+                print(cashin,cashout)
+                # print(yr,year_digit)
+            data1.append(float(cashin))
+            data2.append(float(cashout))
+        print(data1,data2)
+        context = {
+            'details': dash_details,
+            'allmodules': allmodules,
+            'item':item,
+            'cashIn':data1,
+            'cashOut':data2,
+            'label':label,
+            'all_query_set': all_query_set,
+            'total_balance':total_balance,
+            'period':period_MY
+        }
+        return render(request,"zohomodules/cash_in_hand/cash_in_hand_graph.html",context)
+    else:
+        print('inside second for loop')
+        for month in range(1, 13):
+            label.append(datetime(current_year, month, 1).strftime("%B"))
+            cashin = 0
+            cashout = 0
+            for i in all_query_set:
+                d = str(i.object_date)
+                month_digit = int(d[5:7].lstrip('0'))
+                if month == month_digit and i.object_type.upper() == "REDUCE CASH":
+                    total_balance -= float(i.object_amount)
+                    cashout +=  float(i.object_amount)
+                elif month == month_digit and i.object_type.upper() == "ADD CASH":
+                    total_balance += float(i.object_amount)
+                    cashin +=  float(i.object_amount)
+                elif month == month_digit and i.object_is.upper()== "ADD":
+                    total_balance += float(i.object_amount)
+                    cashin +=  float(i.object_amount)
+                elif month == month_digit and i.object_is.upper()== "REDUCE":
+                    total_balance -= float(i.object_amount)
+                    cashout +=  float(i.object_amount)
+                # print(month,month_digit)
+            data1.append(float(cashin))
+            data2.append(float(cashout))
 
-    for month in range(1, current_month + 1):
-        label.append(datetime(current_year, month, 1).strftime("%B"))
-        cashin = 0
-        cashout = 0
-        for i in all_query_set:
-            d = str(i.object_date)
-            month_digit = int(d[5:7].lstrip('0'))
-            if month == month_digit and i.object_type.upper() == "REDUCE CASH":
-                total_balance -= float(i.object_amount)
-                cashout +=  float(i.object_amount)
-            elif month == month_digit and i.object_type.upper() == "ADD CASH":
-                total_balance += float(i.object_amount)
-                cashin +=  float(i.object_amount)
-            elif month == month_digit and i.object_is.upper()== "ADD":
-                total_balance += float(i.object_amount)
-                cashin +=  float(i.object_amount)
-            elif month == month_digit and i.object_is.upper()== "REDUCE":
-                total_balance -= float(i.object_amount)
-                cashout +=  float(i.object_amount)
-        data1.append(float(cashin))
-        data2.append(float(cashout))
+        print(data2)
 
-    print(label)
-
-    context = {
-        'details': dash_details,
-        'allmodules': allmodules,
-        'item':item,
-        'cashIn':data1,
-        'cashOut':data2,
-        'label':label,
-        'all_query_set': all_query_set,
-        'total_balance':total_balance,
-    }     
-    # context = {'allmodules':allmodules,
-    #             'com':dash_details,
-    #             'cmp':dash_details.id,
-    #             'data':data1,
-    #             'cashIn':data1,
-    #             'cashOut':data2,
-    #             'label':"Asdasd",
-    #             'period': "hggfhfgh"}
-    return render(request,"zohomodules/cash_in_hand/cash_in_hand_graph.html",context)
+        context = {
+            'details': dash_details,
+            'allmodules': allmodules,
+            'item':item,
+            'cashIn':data1,
+            'cashOut':data2,
+            'label':label,
+            'all_query_set': all_query_set,
+            'total_balance':total_balance,
+            'period':"month"
+        }
+        return render(request,"zohomodules/cash_in_hand/cash_in_hand_graph.html",context)
 
 
-
-#End
+# ---------------------------------ashikh vu------( end )------------------------------

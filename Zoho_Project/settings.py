@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     'Distributor',
     'Company_Staff',
     'django_social_share',
-    'django_htmx',
 ]
 
 MIDDLEWARE = [

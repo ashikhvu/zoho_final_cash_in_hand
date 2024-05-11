@@ -107,8 +107,22 @@
     </nav>
     <div class="row mt-5">
         <div class="col-md-12">
-            <div class="card mb-5 p-5" style="background-color: rgb(255, 255, 255); border-radius: 1vh;">
-                <h1 style="color: rgb(0, 0, 0); font-weight: bolder;">Cash In Hand</h1><br>
+            <div class="card mb-5 p-5" style="background-color: rgb(0, 0, 0); border-radius: 1vh;">
+                <div class="d-flex justify-content-between">
+                    <h1 style="color: rgb(255, 255, 255); font-weight: bolder;">Cash In Hand</h1>
+                    <div>
+                        <form action="{% url 'cash_in_hand_graph' 'period' %}" method="POST">
+                            {% csrf_token %}
+                            <select style="width: 100%;background-color: black;" class="form-control my-2 text-light" name="period_M_or_Y" onchange="$('#sub_btn').click()" id="period">
+                                <option selected disabled value="">Choose period</option>
+                                <option {% if period == "month" %} selected {% endif %} value="month">Month Wise</option>
+                                <option {% if period == "year" %}  selected {% endif %} value="year">Year Wise</option>
+                            </select>
+                            <button id="sub_btn" hidden  type="submit">asd</button>
+                        </form>
+                    </div>
+                </div>
+                <br>
                 {% for message in messages %}
                 <h5>
                   <div class="alert alert-danger message text-center" style="color: black;" id="alert_danger">
@@ -134,37 +148,77 @@
 
 <style>
     .cl{
-        color: #714900;
+        color:#ff5555;
     }
 </style>
 <script>
-    
-    const ctx = document.getElementById('myChart');
-     new Chart(ctx, {
-       type: 'bar',
-       data: {
-         labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November','December'],
-         datasets: [{
-           label: 'Cash In',
-           data: JSON.parse(`{{cashIn}}`),
-           borderWidth: 2,
-           backgroundColor:"orange",
-         },
-         {
-           label: 'Cash Out',
-           data: JSON.parse(`{{cashOut}}`),
-           borderWidth: 2,
-           backgroundColor:"#714900",
-         }]
-       },
-       options: {
-         scales: {
-           y: {
-             beginAtZero: true
-           }
-         }
-       }
-     });
+    if ('{{ period }}'=='month')
+    {
+        const ctx = document.getElementById('myChart');
+        Chart.defaults.borderColor = 'white';
+        Chart.defaults.color = 'white';
+        Chart.defaults.backgroundColor = 'black';
+
+
+        new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November','December'],
+            datasets: [{
+            label: 'Cash In',
+            data: JSON.parse(`{{cashIn}}`),
+            borderWidth: 2,
+            backgroundColor:"orange",
+            },
+            {
+            label: 'Cash Out',
+            data: JSON.parse(`{{cashOut}}`),
+            borderWidth: 2,
+            backgroundColor:"chocolate",
+            }]
+        },
+        options: {
+            scales: {
+            y: {
+                beginAtZero: true
+            }
+            }
+        }
+        });
+    }
+    else{
+        const ctx = document.getElementById('myChart');
+        Chart.defaults.borderColor = 'white';
+        Chart.defaults.color = 'white';
+        Chart.defaults.backgroundColor = 'black';
+
+
+        new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: JSON.parse(`{{label|safe }}`),
+            datasets: [{
+            label: 'Cash In',
+            data: JSON.parse(`{{cashIn}}`),
+            borderWidth: 2,
+            backgroundColor:"orange",
+            },
+            {
+            label: 'Cash Out',
+            data: JSON.parse(`{{cashOut}}`),
+            borderWidth: 2,
+            backgroundColor:"chocolate",
+            }]
+        },
+        options: {
+            scales: {
+            y: {
+                beginAtZero: true
+            }
+            }
+        }
+        });
+    }
    </script>
 
 {% endblock %}

@@ -768,7 +768,7 @@ urlpatterns = [
     path('cash_in_hand_adjust_cash_edit/<int:pk>', views.cash_in_hand_adjust_cash_edit, name='cash_in_hand_adjust_cash_edit'),
     path('cash_in_hand_delete/<int:pk>', views.cash_in_hand_delete, name='cash_in_hand_delete'),
     path('get_cash_history/<str:pk>', views.get_cash_history, name='get_cash_history'),
-    path('cash_in_hand_graph', views.cash_in_hand_graph, name='cash_in_hand_graph'),
+    path('cash_in_hand_graph/<str:period>', views.cash_in_hand_graph, name='cash_in_hand_graph'),
     #End
 
 
